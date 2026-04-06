@@ -1,0 +1,81 @@
+@startuml
+
+class Usuario {
+  -id: int
+  -nome: String
+  -login: String
+  -senha: String
+  +realizarLogin()
+}
+
+class Cliente {
+  -id: int
+  -nome: String
+  -telefone: String
+  -saldo: double
+  +cadastrar()
+  +editar()
+  +excluir()
+  +consultarSaldo()
+}
+
+class Venda {
+  -id: int
+  -data: Date
+  -valor: double
+  -pago: boolean
+  +registrarVendaFiado()
+}
+
+class Pagamento {
+  -id: int
+  -data: Date
+  -valor: double
+  +realizarPagamento()
+}
+
+class Cobranca {
+  -id: int
+  -valor: double
+  -dataEnvio: Date
+  +enviarCobranca()
+  +receberCobranca()
+}
+
+class Notificacao {
+  -id: int
+  -mensagem: String
+  -data: Date
+  +gerarNotificacao()
+  +enviar()
+}
+
+class Relatorio {
+  +gerarRelatorio()
+}
+
+class SistemaExterno {
+  +enviarMensagem()
+}
+
+' RELACIONAMENTOS
+
+Usuario --> Cliente : gerencia
+Cliente "1" --> "0..*" Venda
+Cliente "1" --> "0..*" Pagamento
+Cliente "1" --> "0..*" Cobranca
+
+Venda --> Cliente
+Pagamento --> Cliente
+Pagamento --> Venda
+
+Cobranca --> Cliente
+Cobranca --> Notificacao
+
+Notificacao --> SistemaExterno
+
+Relatorio --> Cliente
+Relatorio --> Venda
+Relatorio --> Pagamento
+
+@enduml
