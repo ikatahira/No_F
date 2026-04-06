@@ -1,3 +1,6 @@
+
+%diagrama de classes
+
 @startuml
 
 class Usuario {
@@ -113,4 +116,38 @@ rectangle Sistema_NO_F {
 
 }
 
+@enduml
+
+%diagrama de sequência
+@startuml
+start
+
+:Realizar Login_NO_F;
+
+:Selecionar Cliente;
+
+if (Cliente existe?) then (Sim)
+  :Registrar Venda Fiado;
+else (Não)
+  :Cadastrar Cliente;
+  :Registrar Venda Fiado;
+endif
+
+:Calcular Saldo;
+
+if (Saldo > 0?) then (Sim)
+  :Gerar Notificação;
+  :Enviar Cobrança (WhatsApp);
+endif
+
+:Cliente recebe cobrança;
+
+if (Cliente paga?) then (Sim)
+  :Registrar Pagamento;
+  :Calcular Saldo;
+else (Não)
+  :Aguardar pagamento;
+endif
+
+stop
 @enduml
