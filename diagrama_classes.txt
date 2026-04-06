@@ -79,3 +79,38 @@ Relatorio --> Venda
 Relatorio --> Pagamento
 
 @enduml
+
+
+% diagrama de caso de Usuario
+@startuml
+left to right direction
+
+actor Comerciante
+actor Cliente
+actor "Sistema Externo\n(WhatsApp)" as SistemaExterno
+
+rectangle Sistema_NO_F {
+
+  Comerciante --> (Realizar Login)
+  Comerciante --> (Cadastrar Cliente)
+  Comerciante --> (Editar Cliente)
+  Comerciante --> (Excluir Cliente)
+  Comerciante --> (Registrar Pagamento)
+  Comerciante --> (Consultar Saldo do Cliente)
+  Comerciante --> (Gerar Relatórios)
+
+  (Registrar Venda Fiado) --> (Calcular Saldo)
+  (Registrar Pagamento) --> (Calcular Saldo)
+
+  (Calcular Saldo) --> (Gerar Notificação)
+
+  (Gerar Notificação) --> (Enviar Cobrança)
+
+  (Enviar Cobrança) --> SistemaExterno
+
+  Cliente --> (Receber Cobrança)
+  (Receber Cobrança) --> (Realizar Pagamento)
+
+}
+
+@enduml
