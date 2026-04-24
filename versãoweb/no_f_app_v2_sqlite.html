@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>No_F – Controle de Fiado</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<!-- sql.js: SQLite compilado para WebAssembly -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g-dark:#1E3A08;--g-main:#3B6D11;--g-mid:#4A8018;--g-btn:#4A7C1A;
+  --g-light:#5A9B22;--g-pale:#EAF3DC;--g-bg:#F5F8F0;
+  --orange:#E07A2B;--orange-bg:#FEF1E6;--red:#D13030;--red-bg:#FDEAEA;
+  --white:#FFFFFF;--gray-50:#F9F9F7;--gray-100:#F0F0EC;--gray-200:#E0E0D8;
+  --gray-400:#A8A89E;--gray-600:#6A6A60;--gray-700:#4A4A44;--gray-800:#252520;
+  --radius:14px;--shadow:0 2px 12px rgba(30,58,8,.12);
+}
+body{font-family:'DM Sans',sans-serif;background:#111D08;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px;gap:0;}
+
+/* HEADER */
+.app-header{text-align:center;margin-bottom:32px;color:#fff;}
+.app-header h1{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;letter-spacing:-1.5px;line-height:1;}
+.app-header h1 span{color:#8DC948}
+.app-header p{font-size:.85rem;color:#7CA84A;margin-top:4px;letter-spacing:.5px;}
+
+/* DB STATUS BADGE */
+.db-badge{display:inline-flex;align-items:center;gap:6px;margin-top:8px;
+  background:rgba(90,155,34,.15);border:1px solid rgba(90,155,34,.3);
+  border-radius:20px;padding:4px 12px;font-size:.72rem;color:#8DC948;}
+.db-dot{width:6px;height:6px;border-radius:50%;background:#8DC948;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* PHONE SHELL */
+.phone-wrap{display:flex;flex-direction:column;align-items:center;}
+.phone{width:320px;background:#0A0A0A;border-radius:44px;padding:14px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07),0 24px 60px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05);
+  position:relative;}
+.phone::before{content:'';position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  width:90px;height:5px;background:#1a1a1a;border-radius:3px;}
+.phone-screen{background:#fff;border-radius:32px;overflow:hidden;height:640px;
+  display:flex;flex-direction:column;position:relative;}
+
+/* STATUS BAR */
+.status-bar{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 18px 4px;font-size:.7rem;font-weight:600;flex-shrink:0;}
+.status-bar.dark{background:var(--g-dark);color:rgba(255,255,255,.9)}
+.status-bar.light{background:#fff;color:var(--gray-800)}
+.sb-right{display:flex;gap:4px;align-items:center}
+
+/* BOTTOM NAV */
+.bottom-nav{display:flex;justify-content:space-around;align-items:center;
+  padding:10px 8px 12px;border-top:1px solid var(--gray-200);background:#fff;
+  flex-shrink:0;}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:.6rem;color:var(--gray-400);font-weight:500;cursor:pointer;}
+.bn-item.active{color:var(--g-btn)}
+.bn-item svg{width:18px;height:18px}
+.bn-plus{width:40px;height:40px;border-radius:50%;background:var(--g-btn);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.3rem;
+  margin-top:-18px;box-shadow:0 3px 10px rgba(74,124,26,.4);cursor:pointer;}
+
+/* SCREEN BODY */
+.screen-body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+.screen-body::-webkit-scrollbar{display:none}
+
+/* LOADING SCREEN */
+.screen-loading{background:var(--g-dark);height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;}
+.loading-ring{width:48px;height:48px;border:3px solid rgba(255,255,255,.1);
+  border-top-color:#8DC948;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:.8rem;color:rgba(255,255,255,.5);}
+
+/* SPLASH / LOGIN */
+.screen-splash{background:var(--g-dark);height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:32px 28px;}
+.splash-logo-ring{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.splash-logo-ring svg{width:36px;height:36px;color:#fff}
+.splash-app-name{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;
+  color:#fff;letter-spacing:-2px;line-height:1;}
+.splash-tagline{font-size:.8rem;color:rgba(255,255,255,.55);margin-bottom:36px;margin-top:4px;}
+.splash-field{width:100%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);
+  border-radius:10px;padding:12px 16px;color:#fff;font-family:'DM Sans',sans-serif;
+  font-size:.9rem;margin-bottom:10px;outline:none;}
+.splash-field::placeholder{color:rgba(255,255,255,.45)}
+.btn-primary{width:100%;padding:14px;background:var(--g-light);color:#fff;border:none;
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;
+  cursor:pointer;margin-top:6px;transition:background .15s;}
+.btn-primary:hover{background:var(--g-mid)}
+.splash-forgot{font-size:.78rem;color:rgba(255,255,255,.45);margin-top:14px;cursor:pointer;}
+.splash-error{font-size:.78rem;color:#ff8080;margin-top:6px;text-align:center;}
+.splash-db-info{font-size:.7rem;color:rgba(141,201,72,.6);margin-top:20px;text-align:center;line-height:1.6;}
+.splash-db-info strong{color:rgba(141,201,72,.9)}
+
+/* DASHBOARD */
+.dash-header{background:var(--g-dark);padding:14px 18px 18px;color:#fff;flex-shrink:0;}
+.dash-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.dash-greeting{font-size:.8rem;color:rgba(255,255,255,.65)}
+.dash-name{font-size:1rem;font-weight:600;color:#fff}
+.dash-avatar{width:34px;height:34px;border-radius:50%;background:var(--g-light);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;
+  cursor:pointer;}
+.dash-total-label{font-size:.75rem;color:rgba(255,255,255,.6);margin-top:16px}
+.dash-total-value{font-size:2rem;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1.1}
+.dash-subtitle{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:2px}
+.dash-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 14px 0;}
+.dash-card{background:var(--g-bg);border-radius:10px;padding:10px 12px;}
+.dash-card-label{font-size:.68rem;color:var(--gray-600)}
+.dash-card-value{font-size:1rem;font-weight:700;color:var(--gray-800);margin-top:2px}
+.dash-card-value.red{color:var(--red)}
+.dash-devedores{padding:0 14px;margin-top:12px;}
+.dash-section-title{font-size:.72rem;font-weight:600;color:var(--gray-600);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.client-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.client-row:last-child{border-bottom:none}
+.client-row:hover{background:var(--gray-50);margin:0 -4px;padding:9px 4px;}
+
+/* AVATARS */
+.avatar-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;}
+.client-info{flex:1}
+.client-name{font-size:.82rem;font-weight:600;color:var(--gray-800)}
+.client-meta{font-size:.68rem;color:var(--gray-400)}
+.client-value{font-size:.85rem;font-weight:700;color:var(--red);text-align:right}
+
+/* LISTA CLIENTES */
+.list-header{padding:16px 16px 12px;flex-shrink:0;}
+.list-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.list-title{font-size:1.3rem;font-weight:700;color:var(--gray-800)}
+.dot-online{width:14px;height:14px;border-radius:50%;background:var(--g-light);
+  box-shadow:0 0 0 3px rgba(90,155,34,.2);}
+.search-box{width:100%;background:var(--gray-100);border:none;border-radius:10px;
+  padding:9px 14px;font-family:'DM Sans',sans-serif;font-size:.83rem;color:var(--gray-800);
+  outline:none;margin-bottom:10px;}
+.search-box::placeholder{color:var(--gray-400)}
+.filter-tabs{display:flex;gap:6px;margin-bottom:4px}
+.filter-tab{padding:5px 14px;border-radius:20px;border:1.5px solid var(--gray-200);
+  font-size:.72rem;font-weight:600;background:#fff;color:var(--gray-600);cursor:pointer;}
+.filter-tab.active{background:var(--g-btn);border-color:var(--g-btn);color:#fff;}
+.client-list-item{display:flex;align-items:center;gap:10px;padding:11px 16px;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.client-list-item:hover{background:var(--gray-50)}
+.cli-info{flex:1}
+.cli-name{font-size:.85rem;font-weight:600;color:var(--gray-800)}
+.cli-time{font-size:.68rem;color:var(--gray-400)}
+.cli-right{text-align:right}
+.cli-value{font-size:.85rem;font-weight:700;color:var(--red)}
+.cli-status{font-size:.65rem;font-weight:600;margin-top:2px}
+.cli-status.devendo{color:var(--red)}
+.cli-status.quite{color:var(--g-light)}
+.chevron{color:var(--gray-400);font-size:.7rem;margin-left:4px}
+
+/* PERFIL CLIENTE */
+.profile-header{padding:12px 16px 16px;flex-shrink:0;}
+.back-link{font-size:.75rem;color:var(--g-btn);display:flex;align-items:center;gap:4px;
+  margin-bottom:10px;cursor:pointer;}
+.profile-top{display:flex;align-items:center;gap:10px}
+.profile-name{font-size:1rem;font-weight:700;color:var(--gray-800)}
+.profile-phone{font-size:.75rem;color:var(--gray-400)}
+.profile-balances{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 14px;}
+.balance-box{background:var(--gray-50);border-radius:10px;padding:10px 12px;}
+.balance-label{font-size:.68rem;color:var(--gray-600)}
+.balance-value{font-size:1.05rem;font-weight:700;color:var(--gray-800);margin-top:2px}
+.balance-value.red{color:var(--red)}
+.profile-actions{display:flex;gap:8px;padding:0 16px 14px;}
+.btn-action{flex:1;padding:10px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.78rem;font-weight:600;border:none;cursor:pointer;transition:.15s;}
+.btn-green{background:var(--g-btn);color:#fff}
+.btn-outline{background:#fff;color:var(--gray-700);border:1.5px solid var(--gray-200)}
+.btn-red-outline{background:#fff;color:var(--red);border:1.5px solid #F5C0C0}
+.hist-section{padding:0 16px}
+.hist-item{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--gray-100);}
+.hist-icon{width:28px;height:28px;border-radius:8px;background:var(--red-bg);
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;
+  color:var(--red);flex-shrink:0;}
+.hist-icon.pag{background:var(--g-pale);color:var(--g-btn)}
+.hist-desc{font-size:.82rem;font-weight:500;color:var(--gray-800)}
+.hist-date{font-size:.67rem;color:var(--gray-400)}
+.hist-value{font-size:.85rem;font-weight:700;color:var(--red);margin-left:auto;white-space:nowrap;}
+.hist-value.green{color:var(--g-btn)}
+
+/* LANÇAMENTO */
+.launch-header{padding:14px 16px 12px;flex-shrink:0;}
+.launch-title{font-size:1.1rem;font-weight:700;color:var(--gray-800);margin-bottom:12px}
+.tab-pills{display:flex;gap:6px;margin-bottom:0}
+.tab-pill{padding:6px 16px;border-radius:20px;border:1.5px solid var(--gray-200);
+  font-size:.78rem;font-weight:600;background:#fff;color:var(--gray-600);cursor:pointer;}
+.tab-pill.active{background:var(--g-btn);border-color:var(--g-btn);color:#fff;}
+.launch-body{padding:14px 16px}
+.field-label{font-size:.72rem;font-weight:600;color:var(--gray-600);margin-bottom:4px}
+.field-input{width:100%;background:var(--gray-100);border:1.5px solid var(--gray-200);
+  border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.88rem;
+  color:var(--gray-800);outline:none;margin-bottom:12px;}
+.field-input:focus{border-color:var(--g-btn)}
+.client-selector{display:flex;align-items:center;gap:6px;padding:10px 14px;
+  background:var(--gray-100);border-radius:10px;margin-bottom:12px;cursor:pointer;}
+.cs-name{font-size:.88rem;font-weight:600;color:var(--gray-800)}
+.cs-arrow{font-size:.7rem;color:var(--g-btn);margin-left:auto}
+.saldo-alert{background:var(--red-bg);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
+.sa-label{font-size:.68rem;color:var(--red);font-weight:600}
+.sa-value{font-size:1.1rem;font-weight:700;color:var(--red)}
+.btn-save{width:100%;padding:14px;background:var(--g-btn);color:#fff;border:none;
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;
+  cursor:pointer;margin-bottom:10px;}
+.btn-cancel{width:100%;padding:12px;background:#fff;color:var(--gray-600);
+  border:1.5px solid var(--gray-200);border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.9rem;font-weight:500;cursor:pointer;}
+
+/* RELATÓRIO */
+.report-header{padding:14px 16px 12px;flex-shrink:0;}
+.report-title{font-size:1.2rem;font-weight:700;color:var(--gray-800);margin-bottom:12px}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.report-box{background:var(--gray-50);border-radius:10px;padding:10px 12px}
+.rb-label{font-size:.68rem;color:var(--gray-600)}
+.rb-value{font-size:1rem;font-weight:700;margin-top:2px}
+.rb-value.green{color:var(--g-main)}
+.rb-value.red{color:var(--red)}
+.rb-value.orange{color:var(--orange)}
+.rb-value.dark{color:var(--gray-800)}
+.alert-banner{background:var(--orange);border-radius:10px;padding:10px 14px;
+  display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.ab-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0}
+.ab-text{font-size:.78rem;font-weight:600;color:#fff}
+.section-label{font-size:.72rem;font-weight:600;color:var(--gray-600);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.report-client-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--gray-100);}
+.cobrar-btn{display:flex;align-items:center;gap:6px;background:var(--g-btn);color:#fff;
+  border-radius:20px;padding:8px 14px;font-size:.73rem;font-weight:600;cursor:pointer;
+  margin:8px 0;border:none;}
+.cobrar-btn svg{width:14px;height:14px}
+
+/* CADASTRO */
+.cadastro-header{padding:14px 16px 12px;flex-shrink:0;}
+.cad-back{font-size:.75rem;color:var(--g-btn);cursor:pointer;margin-bottom:4px;}
+.cad-title{font-size:1.2rem;font-weight:700;color:var(--gray-800)}
+.cad-body{padding:14px 16px}
+
+/* CONFIGURAÇÕES */
+.settings-header{padding:14px 16px 12px;flex-shrink:0;}
+.settings-title{font-size:1.2rem;font-weight:700;color:var(--gray-800);margin-bottom:4px}
+.settings-section{padding:0 16px 16px}
+.settings-group{background:var(--gray-50);border-radius:12px;margin-bottom:12px;overflow:hidden;}
+.settings-item{display:flex;align-items:center;gap:10px;padding:12px 14px;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.settings-item:last-child{border-bottom:none}
+.settings-item:hover{background:var(--gray-100)}
+.si-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:.9rem;flex-shrink:0;}
+.si-text{flex:1}
+.si-label{font-size:.83rem;font-weight:600;color:var(--gray-800)}
+.si-desc{font-size:.67rem;color:var(--gray-400);margin-top:1px}
+.si-arrow{font-size:.75rem;color:var(--gray-400)}
+.db-info-box{background:var(--g-pale);border-radius:10px;padding:12px 14px;margin:0 16px 16px;}
+.dib-title{font-size:.72rem;font-weight:700;color:var(--g-main);margin-bottom:6px;
+  text-transform:uppercase;letter-spacing:.5px;}
+.dib-row{display:flex;justify-content:space-between;margin-bottom:3px;}
+.dib-key{font-size:.72rem;color:var(--gray-600)}
+.dib-val{font-size:.72rem;font-weight:600;color:var(--gray-800)}
+
+/* MODAL / OVERLAY */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:50;
+  display:flex;align-items:flex-end;border-radius:32px;overflow:hidden;}
+.modal-sheet{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 28px;
+  max-height:80%;overflow-y:auto;}
+.modal-title{font-size:1rem;font-weight:700;color:var(--gray-800);margin-bottom:16px}
+.modal-client-item{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.modal-client-item:last-child{border-bottom:none}
+.modal-client-item:hover{background:var(--gray-50);margin:0 -4px;padding:10px 4px;}
+
+/* TOAST */
+.toast{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--g-dark);color:#fff;padding:9px 18px;border-radius:20px;
+  font-size:.78rem;font-weight:600;z-index:100;white-space:nowrap;
+  animation:fadeUpDown 2.5s ease forwards;}
+@keyframes fadeUpDown{0%{opacity:0;transform:translateX(-50%) translateY(10px)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0)}
+  80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-6px)}}
+
+/* CONFIRM DIALOG */
+.confirm-dialog{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:flex;align-items:center;justify-content:center;border-radius:32px;}
+.confirm-box{background:#fff;border-radius:16px;padding:20px;margin:24px;width:100%;}
+.confirm-title{font-size:.95rem;font-weight:700;color:var(--gray-800);margin-bottom:6px}
+.confirm-text{font-size:.8rem;color:var(--gray-600);margin-bottom:16px}
+.confirm-btns{display:flex;gap:8px;}
+.confirm-btn{flex:1;padding:10px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.85rem;font-weight:600;border:none;cursor:pointer;}
+.confirm-btn.cancel{background:var(--gray-100);color:var(--gray-700)}
+.confirm-btn.danger{background:var(--red);color:#fff}
+.confirm-btn.success{background:var(--g-btn);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>No<span>_F</span></h1>
+  <p>CONTROLE DE FIADO · Paulo Eduardo Ananias · Fatec Ourinhos 2026</p>
+  <div class="db-badge">
+    <div class="db-dot"></div>
+    <span id="dbStatusText">Inicializando banco de dados...</span>
+  </div>
+</div>
+
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="phone-screen" id="phoneScreen"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  NO_F v2.0 — BANCO DE DADOS SQLite (sql.js / WebAssembly)
+//  Tecnologia: SQLite compilado para WebAssembly via sql.js
+//  Persistência: IndexedDB (armazena o arquivo .sqlite binário)
+//  Estrutura de tabelas:
+//    • usuarios (id, usuario, senha, nome, criado_em)
+//    • clientes (id, nome, telefone, limite, cor, criado_em)
+//    • transacoes (id, cliente_id, tipo, valor, descricao, data, criado_em)
+// ═══════════════════════════════════════════════════════════════════
+
+const COLORS = ['#2E7D32','#8B4513','#1565C0','#6A1B9A','#00695C','#E65100','#37474F','#880E4F'];
+let colorIdx = 0;
+
+// ─── ESTADO GLOBAL ────────────────────────────────────────────────
+const state = {
+  db: null,           // instância SQLite
+  sqlJs: null,        // biblioteca sql.js carregada
+  user: null,
+  clients: [],
+  activeClientId: null,
+  screen: 'loading',
+  prevScreen: null,
+  launchMode: 'fiado',
+  filterClients: 'todos',
+  searchQuery: '',
+  dbReady: false,
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  CAMADA DE BANCO DE DADOS — SQLite via sql.js
+// ═══════════════════════════════════════════════════════════════════
+
+const DB_NAME = 'nof_sqlite_v2';
+const DB_KEY  = 'database';
+
+// Abre o IndexedDB para guardar o binário do SQLite
+function openIDB(){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('data');
+    };
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+// Carrega bytes salvos do IndexedDB
+async function loadDBBytes(){
+  const idb = await openIDB();
+  return new Promise((res,rej)=>{
+    const tx  = idb.transaction('data','readonly');
+    const req = tx.objectStore('data').get(DB_KEY);
+    req.onsuccess = e => res(e.target.result || null);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+// Salva bytes no IndexedDB
+async function saveDBBytes(bytes){
+  const idb = await openIDB();
+  return new Promise((res,rej)=>{
+    const tx  = idb.transaction('data','readwrite');
+    const req = tx.objectStore('data').put(bytes, DB_KEY);
+    req.onsuccess = () => res();
+    req.onerror   = e  => rej(e.target.error);
+  });
+}
+
+// Persiste o estado atual do SQLite no IndexedDB
+async function persistDB(){
+  if(!state.db) return;
+  const bytes = state.db.export();
+  await saveDBBytes(bytes);
+}
+
+// Cria as tabelas se não existirem
+function createSchema(db){
+  db.run(`
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario   TEXT NOT NULL UNIQUE,
+      senha     TEXT NOT NULL,
+      nome      TEXT NOT NULL,
+      criado_em TEXT DEFAULT (datetime('now','localtime'))
+    );
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS clientes (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome      TEXT NOT NULL,
+      telefone  TEXT DEFAULT '',
+      limite    REAL DEFAULT 0,
+      cor       TEXT NOT NULL,
+      iniciais  TEXT NOT NULL,
+      criado_em TEXT DEFAULT (datetime('now','localtime'))
+    );
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS transacoes (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      cliente_id  INTEGER NOT NULL,
+      tipo        TEXT NOT NULL CHECK(tipo IN ('fiado','pag')),
+      valor       REAL NOT NULL,
+      descricao   TEXT DEFAULT '',
+      data        TEXT NOT NULL,
+      criado_em   TEXT DEFAULT (datetime('now','localtime')),
+      FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+    );
+  `);
+}
+
+// Inicializa o banco de dados
+async function initDB(){
+  try {
+    document.getElementById('dbStatusText').textContent = 'Carregando SQLite (WebAssembly)...';
+    
+    const SQL = await initSqlJs({
+      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+    });
+    state.sqlJs = SQL;
+
+    // Tenta carregar BD existente
+    const savedBytes = await loadDBBytes();
+    if(savedBytes){
+      state.db = new SQL.Database(savedBytes);
+      document.getElementById('dbStatusText').textContent = 'SQLite · banco restaurado';
+    } else {
+      state.db = new SQL.Database();
+      document.getElementById('dbStatusText').textContent = 'SQLite · banco novo criado';
+    }
+
+    createSchema(state.db);
+    await persistDB();
+
+    state.dbReady = true;
+    document.getElementById('dbStatusText').textContent = 'SQLite · pronto';
+
+    // Carrega usuário logado da sessão
+    const sessionUser = JSON.parse(sessionStorage.getItem('nof_session') || 'null');
+    if(sessionUser){
+      state.user = sessionUser;
+      loadClientsFromDB();
+      state.screen = 'dashboard';
+    } else {
+      state.screen = 'login';
+    }
+    render();
+  } catch(err){
+    console.error('Erro ao inicializar BD:', err);
+    document.getElementById('dbStatusText').textContent = '⚠ Erro no banco de dados';
+    state.screen = 'login';
+    render();
+  }
+}
+
+// ─── OPERAÇÕES DE USUÁRIO ─────────────────────────────────────────
+function dbGetUser(usuario){
+  const res = state.db.exec(
+    `SELECT id, usuario, senha, nome FROM usuarios WHERE usuario = ?`, [usuario]
+  );
+  if(!res.length || !res[0].values.length) return null;
+  const [id, usu, sen, nom] = res[0].values[0];
+  return {id, usuario:usu, senha:sen, nome:nom};
+}
+
+function dbCreateUser(usuario, senha, nome){
+  state.db.run(
+    `INSERT INTO usuarios (usuario, senha, nome) VALUES (?, ?, ?)`,
+    [usuario, senha, nome]
+  );
+  persistDB();
+}
+
+function dbCountUsers(){
+  const res = state.db.exec(`SELECT COUNT(*) FROM usuarios`);
+  return res[0].values[0][0];
+}
+
+// ─── OPERAÇÕES DE CLIENTE ─────────────────────────────────────────
+function dbGetClients(){
+  const res = state.db.exec(`
+    SELECT c.id, c.nome, c.telefone, c.limite, c.cor, c.iniciais,
+           COALESCE(
+             (SELECT SUM(CASE WHEN t.tipo='fiado' THEN t.valor ELSE -t.valor END)
+              FROM transacoes t WHERE t.cliente_id = c.id), 0
+           ) as saldo,
+           (SELECT MAX(t.data) FROM transacoes t WHERE t.cliente_id = c.id) as ultima_data
+    FROM clientes c
+    ORDER BY c.nome COLLATE NOCASE
+  `);
+  if(!res.length) return [];
+  return res[0].values.map(r => ({
+    id: r[0], name: r[1], phone: r[2], limit: r[3],
+    color: r[4], initials: r[5], saldo: r[6], ultimaData: r[7],
+    transactions: [] // lazy-loaded
+  }));
+}
+
+function dbGetTransactions(clientId){
+  const res = state.db.exec(`
+    SELECT id, tipo, valor, descricao, data
+    FROM transacoes
+    WHERE cliente_id = ?
+    ORDER BY data DESC, criado_em DESC
+  `, [clientId]);
+  if(!res.length) return [];
+  return res[0].values.map(r => ({
+    id: r[0], type: r[1], value: r[2], desc: r[3], date: r[4]
+  }));
+}
+
+function dbInsertClient(nome, telefone, limite, cor, iniciais){
+  state.db.run(
+    `INSERT INTO clientes (nome, telefone, limite, cor, iniciais) VALUES (?, ?, ?, ?, ?)`,
+    [nome, telefone || '', limite || 0, cor, iniciais]
+  );
+  persistDB();
+  const res = state.db.exec(`SELECT last_insert_rowid()`);
+  return res[0].values[0][0];
+}
+
+function dbDeleteClient(id){
+  state.db.run(`DELETE FROM clientes WHERE id = ?`, [id]);
+  persistDB();
+}
+
+function dbInsertTransaction(clientId, tipo, valor, descricao, data){
+  state.db.run(
+    `INSERT INTO transacoes (cliente_id, tipo, valor, descricao, data) VALUES (?, ?, ?, ?, ?)`,
+    [clientId, tipo, valor, descricao || '', data]
+  );
+  persistDB();
+}
+
+function dbGetStats(){
+  const res = state.db.exec(`
+    SELECT
+      (SELECT COUNT(*) FROM clientes) as total_clientes,
+      (SELECT COALESCE(SUM(valor),0) FROM transacoes WHERE tipo='fiado') as total_fiado,
+      (SELECT COALESCE(SUM(valor),0) FROM transacoes WHERE tipo='pag') as total_pag,
+      (SELECT COUNT(*) FROM transacoes) as total_tx
+  `);
+  if(!res.length) return {totalClientes:0, totalFiado:0, totalPag:0, totalTx:0};
+  const [tc, tf, tp, tt] = res[0].values[0];
+  return {totalClientes:tc, totalFiado:tf, totalPag:tp, totalTx:tt};
+}
+
+function dbGetTodayStats(){
+  const hoje = today();
+  const res = state.db.exec(`
+    SELECT
+      COALESCE(SUM(CASE WHEN tipo='fiado' THEN valor ELSE 0 END),0) as fiado_hoje,
+      COALESCE(SUM(CASE WHEN tipo='pag' THEN valor ELSE 0 END),0) as pag_hoje
+    FROM transacoes WHERE data = ?
+  `, [hoje]);
+  if(!res.length) return {fiadoHoje:0, pagHoje:0};
+  return {fiadoHoje: res[0].values[0][0], pagHoje: res[0].values[0][1]};
+}
+
+// Carrega clientes na memória (state.clients)
+function loadClientsFromDB(){
+  if(!state.db) return;
+  state.clients = dbGetClients();
+  // Carrega transações de cada cliente
+  state.clients.forEach(c => {
+    c.transactions = dbGetTransactions(c.id);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  UTILITÁRIOS
+// ═══════════════════════════════════════════════════════════════════
+function fmt(v){ return 'R$ '+v.toFixed(2).replace('.',','); }
+
+function fmtDate(iso){
+  if(!iso) return '—';
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}).replace('.','');
+}
+
+function relDate(iso){
+  if(!iso) return '—';
+  const diff = Date.now()-new Date(iso+'T00:00:00').getTime();
+  const days = Math.floor(diff/86400000);
+  if(days===0) return 'hoje';
+  if(days===1) return 'ontem';
+  return `há ${days} dias`;
+}
+
+function saldo(c){ return c.saldo ?? 0; }
+
+function today(){ return new Date().toISOString().slice(0,10); }
+
+function initials(name){
+  return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+function nextColor(){
+  const c = COLORS[colorIdx % COLORS.length];
+  colorIdx++;
+  return c;
+}
+
+function clientById(id){ return state.clients.find(c=>c.id==id); }
+function activeClient(){ return clientById(state.activeClientId); }
+
+function toast(msg){
+  const old = document.querySelector('.toast');
+  if(old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.getElementById('phoneScreen').appendChild(el);
+  setTimeout(()=>el.remove(), 2600);
+}
+
+// ─── NAVEGAÇÃO ────────────────────────────────────────────────────
+function go(screen, prev=null){
+  state.prevScreen = prev || state.screen;
+  state.screen = screen;
+  render();
+}
+
+// ─── RENDER PRINCIPAL ─────────────────────────────────────────────
+function render(){
+  const ps = document.getElementById('phoneScreen');
+  ps.innerHTML = '';
+  const screens = {
+    loading:    renderLoading,
+    login:      renderLogin,
+    dashboard:  renderDashboard,
+    clientes:   renderClientes,
+    perfil:     renderPerfil,
+    lancamento: renderLancamento,
+    relatorio:  renderRelatorio,
+    cadastro:   renderCadastro,
+    configuracoes: renderConfiguracoes,
+  };
+  (screens[state.screen] || renderLogin)(ps);
+}
+
+// ─── BOTTOM NAV ───────────────────────────────────────────────────
+function navIcons(){
+  return {
+    home:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>`,
+    users:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+    report:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  };
+}
+
+function bottomNav(active){
+  const ic = navIcons();
+  const div = document.createElement('div');
+  div.className = 'bottom-nav';
+  div.innerHTML = `
+    <div class="bn-item ${active==='home'?'active':''}" data-nav="dashboard">${ic.home}Início</div>
+    <div class="bn-item ${active==='clientes'?'active':''}" data-nav="clientes">${ic.users}Clientes</div>
+    <div class="bn-plus" id="btnPlus">+</div>
+    <div class="bn-item ${active==='relatorio'?'active':''}" data-nav="relatorio">${ic.report}Relatório</div>
+  `;
+  div.querySelectorAll('[data-nav]').forEach(el=>{
+    el.addEventListener('click',()=>go(el.dataset.nav));
+  });
+  div.querySelector('#btnPlus').addEventListener('click',()=>{
+    state.launchMode = 'fiado';
+    go('lancamento');
+  });
+  return div;
+}
+
+function statusBar(dark=false){
+  const bar = document.createElement('div');
+  bar.className = `status-bar ${dark?'dark':'light'}`;
+  const now = new Date();
+  bar.innerHTML = `<span>${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}</span><div class="sb-right">●●●</div>`;
+  return bar;
+}
+
+function avatarCircle(c, size=32, fontSize='.7rem'){
+  const el = document.createElement('div');
+  el.className = 'avatar-circle';
+  el.style.cssText = `background:${c.color};width:${size}px;height:${size}px;font-size:${fontSize};`;
+  el.textContent = c.initials;
+  return el;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TELAS
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── TELA LOADING ─────────────────────────────────────────────────
+function renderLoading(ps){
+  const div = document.createElement('div');
+  div.className = 'screen-loading';
+  div.innerHTML = `
+    <div class="loading-ring"></div>
+    <div class="loading-text">Inicializando SQLite...</div>
+  `;
+  ps.appendChild(div);
+}
+
+// ─── TELA LOGIN ───────────────────────────────────────────────────
+function renderLogin(ps){
+  const div = document.createElement('div');
+  div.className = 'screen-splash';
+  div.style.height = '100%';
+  div.innerHTML = `
+    <div class="splash-logo-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+    </div>
+    <div class="splash-app-name">No_F</div>
+    <div class="splash-tagline">controle de fiado</div>
+    <input id="loginUser" class="splash-field" type="text" placeholder="Usuário">
+    <input id="loginPass" class="splash-field" type="password" placeholder="Senha">
+    <button class="btn-primary" id="btnEntrar" style="margin-top:8px">Entrar</button>
+    <div class="splash-error" id="loginErr" style="display:none"></div>
+    <div class="splash-db-info">
+      <strong>Banco de dados:</strong> SQLite via WebAssembly<br>
+      Dados armazenados localmente no seu dispositivo
+    </div>
+  `;
+  ps.appendChild(div);
+
+  div.querySelector('#btnEntrar').addEventListener('click',()=>{
+    const u = div.querySelector('#loginUser').value.trim();
+    const p = div.querySelector('#loginPass').value;
+    const err = div.querySelector('#loginErr');
+    if(!u || !p){ err.textContent='Preencha usuário e senha'; err.style.display='block'; return; }
+
+    if(!state.db){ err.textContent='Banco ainda carregando...'; err.style.display='block'; return; }
+
+    const existente = dbGetUser(u);
+    if(existente){
+      if(existente.senha !== p){
+        err.textContent='Usuário ou senha incorretos'; err.style.display='block'; return;
+      }
+      state.user = existente;
+    } else {
+      // Primeiro usuário — cria conta automaticamente
+      dbCreateUser(u, p, u);
+      state.user = dbGetUser(u);
+    }
+    sessionStorage.setItem('nof_session', JSON.stringify(state.user));
+    loadClientsFromDB();
+    go('dashboard');
+  });
+
+  // Enter key
+  div.querySelector('#loginPass').addEventListener('keydown', e=>{
+    if(e.key==='Enter') div.querySelector('#btnEntrar').click();
+  });
+}
+
+// ─── TELA DASHBOARD ───────────────────────────────────────────────
+function renderDashboard(ps){
+  loadClientsFromDB();
+  const totalAberto = state.clients.reduce((acc,c)=>acc+Math.max(0,saldo(c)),0);
+  const comDebito = state.clients.filter(c=>saldo(c)>0);
+  const {fiadoHoje, pagHoje} = dbGetTodayStats();
+  const top = [...comDebito].sort((a,b)=>saldo(b)-saldo(a)).slice(0,3);
+  const nome = state.user?.nome || 'Comerciante';
+  const ini = nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const hora = new Date().getHours();
+  const saud = hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
+  const diaSem = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'});
+
+  ps.appendChild(statusBar(true));
+
+  const header = document.createElement('div');
+  header.className = 'dash-header';
+  header.innerHTML = `
+    <div class="dash-top">
+      <div>
+        <div class="dash-greeting">${saud}, ${nome.split(' ')[0]}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.5)">${diaSem}</div>
+      </div>
+      <div class="dash-avatar" id="dashAvatar" title="Configurações">${ini}</div>
+    </div>
+    <div class="dash-total-label" style="margin-top:14px">Total a receber</div>
+    <div class="dash-total-value">${fmt(totalAberto)}</div>
+    <div class="dash-subtitle">${state.clients.length} clientes · ${comDebito.length} com débito</div>
+  `;
+  header.querySelector('#dashAvatar').addEventListener('click',()=>go('configuracoes','dashboard'));
+  ps.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+  body.innerHTML = `
+    <div class="dash-cards">
+      <div class="dash-card"><div class="dash-card-label">Clientes</div><div class="dash-card-value">${state.clients.length}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Com débito</div><div class="dash-card-value red">${comDebito.length}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Fiado hoje</div><div class="dash-card-value">${fiadoHoje>0?fmt(fiadoHoje):'—'}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Recebido hoje</div><div class="dash-card-value" style="color:var(--g-main)">${pagHoje>0?fmt(pagHoje):'—'}</div></div>
+    </div>
+    <div class="dash-devedores" style="padding-top:14px">
+      <div class="dash-section-title">Maiores devedores</div>
+      ${top.length===0?`<div style="font-size:.8rem;color:var(--gray-400);padding:12px 0;">Nenhum devedor 🎉</div>`:''}
+    </div>
+  `;
+  top.forEach(c=>{
+    const row = document.createElement('div');
+    row.className = 'client-row';
+    row.appendChild(avatarCircle(c));
+    row.innerHTML += `
+      <div class="client-info">
+        <div class="client-name">${c.name}</div>
+        <div class="client-meta">${relDate(c.ultimaData)}</div>
+      </div>
+      <div class="client-value">${fmt(saldo(c))}</div>
+    `;
+    row.addEventListener('click',()=>{ state.activeClientId=c.id; go('perfil','dashboard'); });
+    body.querySelector('.dash-devedores').appendChild(row);
+  });
+  ps.appendChild(body);
+  ps.appendChild(bottomNav('home'));
+}
+
+// ─── TELA CLIENTES ────────────────────────────────────────────────
+function renderClientes(ps){
+  loadClientsFromDB();
+  ps.appendChild(statusBar());
+
+  const header = document.createElement('div');
+  header.className = 'list-header';
+  header.innerHTML = `
+    <div class="list-title-row">
+      <div class="list-title">Clientes</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="dot-online"></div>
+        <div style="font-size:.72rem;color:var(--g-btn);cursor:pointer;font-weight:600;" id="btnAddCli">+ Novo</div>
+      </div>
+    </div>
+    <input class="search-box" id="searchBox" placeholder="Buscar cliente..." value="${state.searchQuery}">
+    <div class="filter-tabs">
+      <div class="filter-tab ${state.filterClients==='todos'?'active':''}" data-f="todos">Todos</div>
+      <div class="filter-tab ${state.filterClients==='devendo'?'active':''}" data-f="devendo">Devedores</div>
+      <div class="filter-tab ${state.filterClients==='quite'?'active':''}" data-f="quite">Quite</div>
+    </div>
+  `;
+  header.querySelector('#btnAddCli').addEventListener('click',()=>go('cadastro','clientes'));
+  header.querySelector('#searchBox').addEventListener('input', e=>{
+    state.searchQuery = e.target.value;
+    render();
+  });
+  header.querySelectorAll('[data-f]').forEach(el=>{
+    el.addEventListener('click',()=>{ state.filterClients=el.dataset.f; render(); });
+  });
+  ps.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+
+  let list = [...state.clients];
+  if(state.searchQuery){
+    const q = state.searchQuery.toLowerCase();
+    list = list.filter(c=>c.name.toLowerCase().includes(q)||(c.phone||'').includes(q));
+  }
+  if(state.filterClients==='devendo') list = list.filter(c=>saldo(c)>0);
+  if(state.filterClients==='quite')   list = list.filter(c=>saldo(c)<=0);
+
+  if(list.length===0){
+    body.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--gray-400);font-size:.85rem;">
+      ${state.clients.length===0?'Nenhum cliente cadastrado ainda.<br><br>Toque em <b>+ Novo</b> para começar.':'Nenhum cliente encontrado.'}
+    </div>`;
+  } else {
+    list.forEach(c=>{
+      const s = saldo(c);
+      const row = document.createElement('div');
+      row.className = 'client-list-item';
+      row.appendChild(avatarCircle(c));
+      row.innerHTML += `
+        <div class="cli-info">
+          <div class="cli-name">${c.name}</div>
+          <div class="cli-time">${c.ultimaData?relDate(c.ultimaData):'sem lançamentos'}</div>
+        </div>
+        <div class="cli-right">
+          <div class="cli-value" style="${s<=0?'color:var(--gray-400)':''}">${s>0?fmt(s):'—'}</div>
+          <div class="cli-status ${s>0?'devendo':'quite'}">${s>0?'devendo':'quite'}</div>
+        </div>
+        <span class="chevron">›</span>
+      `;
+      row.addEventListener('click',()=>{ state.activeClientId=c.id; go('perfil','clientes'); });
+      body.appendChild(row);
+    });
+  }
+  ps.appendChild(body);
+  ps.appendChild(bottomNav('clientes'));
+}
+
+// ─── TELA PERFIL CLIENTE ──────────────────────────────────────────
+function renderPerfil(ps){
+  loadClientsFromDB();
+  const c = activeClient();
+  if(!c){ go('clientes'); return; }
+  const s = saldo(c);
+
+  ps.appendChild(statusBar());
+
+  const header = document.createElement('div');
+  header.className = 'profile-header';
+  header.innerHTML = `
+    <div class="back-link" id="backBtn">‹ ${state.prevScreen==='dashboard'?'Início':'Clientes'}</div>
+    <div class="profile-top">
+      <div style="width:40px;height:40px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;">${c.initials}</div>
+      <div>
+        <div class="profile-name">${c.name}</div>
+        <div class="profile-phone">${c.phone||'Sem telefone'}</div>
+      </div>
+    </div>
+  `;
+  header.querySelector('#backBtn').addEventListener('click',()=>go(state.prevScreen||'clientes'));
+  ps.appendChild(header);
+
+  const balances = document.createElement('div');
+  balances.className = 'profile-balances';
+  balances.innerHTML = `
+    <div class="balance-box">
+      <div class="balance-label">Saldo devedor</div>
+      <div class="balance-value ${s>0?'red':''}">${s>0?fmt(s):'R$ 0,00'}</div>
+    </div>
+    <div class="balance-box">
+      <div class="balance-label">Limite</div>
+      <div class="balance-value">${c.limit>0?fmt(c.limit):'Sem limite'}</div>
+    </div>
+  `;
+  ps.appendChild(balances);
+
+  const actions = document.createElement('div');
+  actions.className = 'profile-actions';
+  actions.innerHTML = `
+    <button class="btn-action btn-green" id="btnFiado">+ Fiado</button>
+    <button class="btn-action btn-outline" id="btnPag">Pagamento</button>
+    <button class="btn-action btn-red-outline" id="btnDel">Excluir</button>
+  `;
+  actions.querySelector('#btnFiado').addEventListener('click',()=>{
+    state.launchMode='fiado'; go('lancamento','perfil');
+  });
+  actions.querySelector('#btnPag').addEventListener('click',()=>{
+    state.launchMode='pag'; go('lancamento','perfil');
+  });
+  actions.querySelector('#btnDel').addEventListener('click',()=>showConfirmDelete(c));
+  ps.appendChild(actions);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+
+  const hist = document.createElement('div');
+  hist.className = 'hist-section';
+  hist.innerHTML = `<div class="dash-section-title">Histórico</div>`;
+
+  const txs = c.transactions;
+  if(txs.length===0){
+    hist.innerHTML += `<div style="font-size:.8rem;color:var(--gray-400);padding:12px 0;">Nenhum lançamento ainda.</div>`;
+  } else {
+    txs.forEach(t=>{
+      const item = document.createElement('div');
+      item.className = 'hist-item';
+      item.innerHTML = `
+        <div class="hist-icon ${t.type==='pag'?'pag':''}">${t.type==='fiado'?'F':'P'}</div>
+        <div>
+          <div class="hist-desc">${t.desc||'(sem descrição)'}</div>
+          <div class="hist-date">${fmtDate(t.date)}</div>
+        </div>
+        <div class="hist-value ${t.type==='pag'?'green':''}">${t.type==='fiado'?'−':'+'}${fmt(t.value)}</div>
+      `;
+      hist.appendChild(item);
+    });
+  }
+  body.appendChild(hist);
+  ps.appendChild(body);
+  ps.appendChild(bottomNav('clientes'));
+}
+
+function showConfirmDelete(c){
+  const ps = document.getElementById('phoneScreen');
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-dialog';
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <div class="confirm-title">Excluir ${c.name}?</div>
+      <div class="confirm-text">Todos os lançamentos também serão apagados do banco de dados. Esta ação não pode ser desfeita.</div>
+      <div class="confirm-btns">
+        <button class="confirm-btn cancel" id="cbCancel">Cancelar</button>
+        <button class="confirm-btn danger" id="cbDel">Excluir</button>
+      </div>
+    </div>
+  `;
+  overlay.querySelector('#cbCancel').addEventListener('click',()=>overlay.remove());
+  overlay.querySelector('#cbDel').addEventListener('click',()=>{
+    dbDeleteClient(c.id);
+    loadClientsFromDB();
+    go('clientes');
+    toast(`${c.name} excluído`);
+  });
+  ps.appendChild(overlay);
+}
+
+// ─── TELA LANÇAMENTO ──────────────────────────────────────────────
+function renderLancamento(ps){
+  const preClient = state.prevScreen==='perfil' ? activeClient() : null;
+  let selectedClient = preClient;
+
+  ps.appendChild(statusBar());
+
+  const header = document.createElement('div');
+  header.className = 'launch-header';
+  header.innerHTML = `
+    <div class="launch-title">Novo lançamento</div>
+    <div class="tab-pills">
+      <div class="tab-pill ${state.launchMode==='fiado'?'active':''}" id="tabFiado">Fiado</div>
+      <div class="tab-pill ${state.launchMode==='pag'?'active':''}" id="tabPag">Pagamento</div>
+    </div>
+  `;
+  header.querySelector('#tabFiado').addEventListener('click',()=>{ state.launchMode='fiado'; ps.innerHTML=''; renderLancamento(ps); });
+  header.querySelector('#tabPag').addEventListener('click',()=>{ state.launchMode='pag'; ps.innerHTML=''; renderLancamento(ps); });
+  ps.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+  const form = document.createElement('div');
+  form.className = 'launch-body';
+
+  // Cliente selector
+  const fieldCli = document.createElement('div');
+  fieldCli.innerHTML = `<div class="field-label">Cliente</div>`;
+  const clientSel = document.createElement('div');
+  clientSel.className = 'client-selector';
+  const updateClientSel = ()=>{
+    clientSel.innerHTML = selectedClient
+      ? `<div style="width:26px;height:26px;border-radius:50%;background:${selectedClient.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;">${selectedClient.initials}</div><span class="cs-name">${selectedClient.name}</span><span class="cs-arrow">›</span>`
+      : `<span class="cs-name" style="color:var(--gray-400)">Selecionar cliente</span><span class="cs-arrow">›</span>`;
+  };
+  updateClientSel();
+  clientSel.addEventListener('click',()=>{
+    showClientPicker(ps, (c)=>{ selectedClient=c; updateClientSel(); updateSaldo(); });
+  });
+  fieldCli.appendChild(clientSel);
+  form.appendChild(fieldCli);
+
+  const saldoAlert = document.createElement('div');
+  const updateSaldo = ()=>{
+    if(state.launchMode==='pag' && selectedClient){
+      const s = saldo(selectedClient);
+      saldoAlert.innerHTML = `<div class="saldo-alert"><div class="sa-label">Saldo devedor</div><div class="sa-value">${fmt(Math.max(0,s))}</div></div>`;
+    } else { saldoAlert.innerHTML = ''; }
+  };
+  updateSaldo();
+  form.appendChild(saldoAlert);
+
+  if(state.launchMode==='fiado'){
+    const d = document.createElement('div');
+    d.innerHTML = `<div class="field-label">Descrição</div><input class="field-input" id="fDesc" type="text" placeholder="Ex: 1 kg arroz, 2 pães...">`;
+    form.appendChild(d);
+  }
+
+  const dv = document.createElement('div');
+  dv.innerHTML = `<div class="field-label">Valor (R$)</div><input class="field-input" id="fValor" type="number" min="0.01" step="0.01" placeholder="0,00">`;
+  form.appendChild(dv);
+
+  const dd = document.createElement('div');
+  dd.innerHTML = `<div class="field-label">Data</div><input class="field-input" id="fData" type="date" value="${today()}">`;
+  form.appendChild(dd);
+
+  if(state.launchMode==='pag'){
+    const do_ = document.createElement('div');
+    do_.innerHTML = `<div class="field-label">Observação</div><input class="field-input" id="fObs" type="text" placeholder="Opcional">`;
+    form.appendChild(do_);
+  }
+
+  const btnSave = document.createElement('button');
+  btnSave.className = 'btn-save';
+  btnSave.textContent = state.launchMode==='fiado' ? 'Registrar fiado' : 'Confirmar pagamento';
+  btnSave.style.marginTop = '8px';
+  btnSave.addEventListener('click',()=>{
+    if(!selectedClient){ toast('Selecione um cliente'); return; }
+    const valor = parseFloat(form.querySelector('#fValor')?.value||'0');
+    if(!valor||valor<=0){ toast('Informe um valor válido'); return; }
+    const desc = state.launchMode==='fiado'
+      ? (form.querySelector('#fDesc')?.value||'')
+      : (form.querySelector('#fObs')?.value||'Pagamento');
+    const data = form.querySelector('#fData')?.value||today();
+
+    dbInsertTransaction(selectedClient.id, state.launchMode, valor, desc, data);
+    loadClientsFromDB();
+    state.activeClientId = selectedClient.id;
+    toast(state.launchMode==='fiado' ? `Fiado de ${fmt(valor)} registrado!` : `Pagamento de ${fmt(valor)} confirmado!`);
+    go('perfil', 'clientes');
+  });
+  form.appendChild(btnSave);
+
+  body.appendChild(form);
+  ps.appendChild(body);
+  ps.appendChild(bottomNav(''));
+}
+
+function showClientPicker(ps, onSelect){
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+  sheet.innerHTML = `<div class="modal-title">Selecionar cliente</div>`;
+  if(state.clients.length===0){
+    sheet.innerHTML += `<div style="font-size:.82rem;color:var(--gray-400);">Nenhum cliente cadastrado.</div>`;
+  } else {
+    state.clients.forEach(c=>{
+      const item = document.createElement('div');
+      item.className = 'modal-client-item';
+      item.innerHTML = `
+        <div style="width:32px;height:32px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">${c.initials}</div>
+        <div class="cli-info"><div class="cli-name">${c.name}</div><div class="cli-time">${c.phone||''}</div></div>
+      `;
+      item.addEventListener('click',()=>{ onSelect(c); overlay.remove(); });
+      sheet.appendChild(item);
+    });
+  }
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  ps.appendChild(overlay);
+}
+
+// ─── TELA RELATÓRIO ───────────────────────────────────────────────
+function renderRelatorio(ps){
+  loadClientsFromDB();
+  const stats = dbGetStats();
+  const emAberto = state.clients.reduce((a,c)=>a+Math.max(0,saldo(c)),0);
+  const devedores = state.clients.filter(c=>saldo(c)>0).sort((a,b)=>saldo(b)-saldo(a));
+
+  ps.appendChild(statusBar());
+
+  const header = document.createElement('div');
+  header.className = 'report-header';
+  header.innerHTML = `
+    <div class="report-title">Relatório</div>
+    <div class="report-grid">
+      <div class="report-box"><div class="rb-label">Total fiado</div><div class="rb-value red">${fmt(stats.totalFiado)}</div></div>
+      <div class="report-box"><div class="rb-label">Recebido</div><div class="rb-value green">${fmt(stats.totalPag)}</div></div>
+      <div class="report-box"><div class="rb-label">Em aberto</div><div class="rb-value orange">${fmt(emAberto)}</div></div>
+      <div class="report-box"><div class="rb-label">Devedores</div><div class="rb-value dark">${devedores.length}</div></div>
+    </div>
+    ${devedores.length>0?`<div class="alert-banner"><div class="ab-dot"></div><div class="ab-text">${devedores.length} cliente${devedores.length>1?'s':''} aguarda${devedores.length===1?'':'m'} cobrança</div></div>`:''}
+  `;
+  ps.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+  const inner = document.createElement('div');
+  inner.style.padding = '0 16px';
+
+  if(devedores.length===0){
+    inner.innerHTML = `<div style="text-align:center;padding:32px 0;font-size:.85rem;color:var(--gray-400);">Nenhum cliente devedor 🎉</div>`;
+  } else {
+    inner.innerHTML = `<div class="section-label">Clientes em aberto</div>`;
+    devedores.forEach(c=>{
+      const s = saldo(c);
+      const row = document.createElement('div');
+      row.className = 'report-client-row';
+      row.innerHTML = `
+        <div style="width:32px;height:32px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;">${c.initials}</div>
+        <div class="cli-info"><div class="cli-name">${c.name}</div><div class="cli-time">${c.phone||'—'}</div></div>
+        <div class="cli-value">${fmt(s)}</div>
+      `;
+      inner.appendChild(row);
+      if(c.phone){
+        const btn = document.createElement('button');
+        btn.className = 'cobrar-btn';
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 0C5.373 0 0 5.373 0 12c0 2.127.557 4.12 1.531 5.845L0 24l6.33-1.508A11.96 11.96 0 0011.998 24C18.625 24 24 18.627 24 12S18.625 0 11.998 0zm0 21.818a9.822 9.822 0 01-5.012-1.374l-.36-.214-3.755.895.952-3.65-.234-.374A9.818 9.818 0 012.18 12c0-5.42 4.4-9.818 9.818-9.818 5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/></svg>
+        Cobrar ${c.name.split(' ')[0]} — ${fmt(s)}`;
+        const phone = (c.phone||'').replace(/\D/g,'');
+        const msg = encodeURIComponent(`Olá ${c.name.split(' ')[0]}, seu saldo em aberto é de ${fmt(s)}. Quando puder, podemos acertar? 😊`);
+        btn.addEventListener('click',()=>{ window.open(`https://wa.me/55${phone}?text=${msg}`,'_blank'); });
+        inner.appendChild(btn);
+      }
+    });
+  }
+  body.appendChild(inner);
+  ps.appendChild(body);
+  ps.appendChild(bottomNav('relatorio'));
+}
+
+// ─── TELA CADASTRO ────────────────────────────────────────────────
+function renderCadastro(ps){
+  ps.appendChild(statusBar());
+  const header = document.createElement('div');
+  header.className = 'cadastro-header';
+  header.innerHTML = `<div class="cad-back" id="cadBack">‹ Clientes</div><div class="cad-title">Novo cliente</div>`;
+  header.querySelector('#cadBack').addEventListener('click',()=>go('clientes'));
+  ps.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+  const form = document.createElement('div');
+  form.className = 'cad-body';
+  form.innerHTML = `
+    <div class="field-label">Nome completo *</div>
+    <input class="field-input" id="cadNome" type="text" placeholder="Nome do cliente">
+    <div class="field-label">Telefone (WhatsApp)</div>
+    <input class="field-input" id="cadTel" type="tel" placeholder="(xx) 9xxxx-xxxx">
+    <div class="field-label">Limite de crédito (R$)</div>
+    <input class="field-input" id="cadLimite" type="number" min="0" step="0.01" placeholder="0,00">
+  `;
+
+  const btnSave = document.createElement('button');
+  btnSave.className = 'btn-save';
+  btnSave.textContent = 'Salvar cliente';
+  btnSave.style.marginTop = '16px';
+  btnSave.addEventListener('click',()=>{
+    const nome = form.querySelector('#cadNome').value.trim();
+    if(!nome){ toast('Informe o nome do cliente'); return; }
+    const phone = form.querySelector('#cadTel').value.trim();
+    const limit = parseFloat(form.querySelector('#cadLimite').value)||0;
+    const cor = nextColor();
+    const ini = initials(nome);
+    dbInsertClient(nome, phone, limit, cor, ini);
+    loadClientsFromDB();
+    toast(`${nome} cadastrado!`);
+    go('clientes');
+  });
+  form.appendChild(btnSave);
+
+  const btnCancel = document.createElement('button');
+  btnCancel.className = 'btn-cancel';
+  btnCancel.textContent = 'Cancelar';
+  btnCancel.addEventListener('click',()=>go('clientes'));
+  form.appendChild(btnCancel);
+
+  body.appendChild(form);
+  ps.appendChild(body);
+}
+
+// ─── TELA CONFIGURAÇÕES ───────────────────────────────────────────
+function renderConfiguracoes(ps){
+  ps.appendChild(statusBar());
+  const stats = dbGetStats();
+
+  const header = document.createElement('div');
+  header.className = 'settings-header';
+  header.innerHTML = `
+    <div class="back-link" id="cfgBack" style="cursor:pointer">‹ Início</div>
+    <div class="settings-title">Configurações</div>
+  `;
+  header.querySelector('#cfgBack').addEventListener('click',()=>go('dashboard'));
+  ps.appendChild(header);
+
+  const body = document.createElement('div');
+  body.className = 'screen-body';
+
+  // Bloco info do BD
+  const dbBox = document.createElement('div');
+  dbBox.className = 'db-info-box';
+  dbBox.innerHTML = `
+    <div class="dib-title">🗄 Banco de Dados SQLite</div>
+    <div class="dib-row"><span class="dib-key">Motor</span><span class="dib-val">SQLite via WebAssembly</span></div>
+    <div class="dib-row"><span class="dib-key">Biblioteca</span><span class="dib-val">sql.js v1.10.3</span></div>
+    <div class="dib-row"><span class="dib-key">Persistência</span><span class="dib-val">IndexedDB</span></div>
+    <div class="dib-row"><span class="dib-key">Clientes</span><span class="dib-val">${stats.totalClientes}</span></div>
+    <div class="dib-row"><span class="dib-key">Transações</span><span class="dib-val">${stats.totalTx}</span></div>
+    <div class="dib-row"><span class="dib-key">Tabelas</span><span class="dib-val">usuarios, clientes, transacoes</span></div>
+  `;
+  body.appendChild(dbBox);
+
+  const section = document.createElement('div');
+  section.className = 'settings-section';
+
+  // Grupo usuário
+  const grpUser = document.createElement('div');
+  grpUser.className = 'settings-group';
+  grpUser.innerHTML = `
+    <div class="settings-item">
+      <div class="si-icon" style="background:var(--g-pale);">👤</div>
+      <div class="si-text">
+        <div class="si-label">${state.user?.nome || '—'}</div>
+        <div class="si-desc">Usuário: ${state.user?.usuario || '—'}</div>
+      </div>
+    </div>
+  `;
+  section.appendChild(grpUser);
+
+  // Grupo banco
+  const grpDB = document.createElement('div');
+  grpDB.className = 'settings-group';
+
+  const itemExport = document.createElement('div');
+  itemExport.className = 'settings-item';
+  itemExport.innerHTML = `
+    <div class="si-icon" style="background:#E8F4FD;">💾</div>
+    <div class="si-text">
+      <div class="si-label">Exportar banco SQLite</div>
+      <div class="si-desc">Baixa o arquivo .sqlite para backup</div>
+    </div>
+    <span class="si-arrow">›</span>
+  `;
+  itemExport.addEventListener('click', exportDB);
+  grpDB.appendChild(itemExport);
+
+  const itemSQL = document.createElement('div');
+  itemSQL.className = 'settings-item';
+  itemSQL.innerHTML = `
+    <div class="si-icon" style="background:#FFF3E0;">🔍</div>
+    <div class="si-text">
+      <div class="si-label">Visualizar SQL</div>
+      <div class="si-desc">Esquema das tabelas do banco</div>
+    </div>
+    <span class="si-arrow">›</span>
+  `;
+  itemSQL.addEventListener('click', ()=>showSQLSchema(ps));
+  grpDB.appendChild(itemSQL);
+
+  section.appendChild(grpDB);
+
+  // Grupo perigo
+  const grpDanger = document.createElement('div');
+  grpDanger.className = 'settings-group';
+  const itemLogout = document.createElement('div');
+  itemLogout.className = 'settings-item';
+  itemLogout.innerHTML = `
+    <div class="si-icon" style="background:var(--red-bg);">🚪</div>
+    <div class="si-text">
+      <div class="si-label" style="color:var(--red)">Sair da conta</div>
+      <div class="si-desc">Encerra a sessão atual</div>
+    </div>
+  `;
+  itemLogout.addEventListener('click',()=>{
+    sessionStorage.removeItem('nof_session');
+    state.user = null;
+    state.clients = [];
+    go('login');
+  });
+  grpDanger.appendChild(itemLogout);
+  section.appendChild(grpDanger);
+
+  body.appendChild(section);
+  ps.appendChild(body);
+}
+
+// Exporta o banco como arquivo .sqlite
+function exportDB(){
+  try {
+    const bytes = state.db.export();
+    const blob = new Blob([bytes], {type:'application/x-sqlite3'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nof_banco_${today()}.sqlite`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Banco exportado!');
+  } catch(e){
+    toast('Erro ao exportar');
+  }
+}
+
+// Mostra esquema SQL das tabelas
+function showSQLSchema(ps){
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.style.zIndex = '200';
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+
+  const schema = `-- TABELA: usuarios
+CREATE TABLE usuarios (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario   TEXT NOT NULL UNIQUE,
+  senha     TEXT NOT NULL,
+  nome      TEXT NOT NULL,
+  criado_em TEXT DEFAULT (datetime('now'))
+);
+
+-- TABELA: clientes
+CREATE TABLE clientes (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome      TEXT NOT NULL,
+  telefone  TEXT DEFAULT '',
+  limite    REAL DEFAULT 0,
+  cor       TEXT NOT NULL,
+  iniciais  TEXT NOT NULL,
+  criado_em TEXT DEFAULT (datetime('now'))
+);
+
+-- TABELA: transacoes
+CREATE TABLE transacoes (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  cliente_id INTEGER NOT NULL,
+  tipo       TEXT NOT NULL CHECK(tipo IN ('fiado','pag')),
+  valor      REAL NOT NULL,
+  descricao  TEXT DEFAULT '',
+  data       TEXT NOT NULL,
+  criado_em  TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+    ON DELETE CASCADE
+);`;
+
+  sheet.innerHTML = `
+    <div class="modal-title" style="font-family:monospace;font-size:.9rem">Esquema do Banco</div>
+    <pre style="font-family:monospace;font-size:.65rem;color:var(--gray-700);white-space:pre-wrap;line-height:1.5;background:var(--gray-50);border-radius:8px;padding:12px;overflow-x:auto;">${schema}</pre>
+    <button class="btn-save" style="margin-top:12px" id="schemaClose">Fechar</button>
+  `;
+  sheet.querySelector('#schemaClose').addEventListener('click',()=>overlay.remove());
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+  ps.appendChild(overlay);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  BOOT — inicializa o SQLite e exibe tela de loading
+// ═══════════════════════════════════════════════════════════════════
+render(); // mostra loading imediatamente
+initDB(); // carrega banco de forma assíncrona
+</script>
+</body>
+</html>
