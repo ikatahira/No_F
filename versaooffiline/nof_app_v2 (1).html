@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>No_F – Controle de Fiado v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --g-dark:#1E3A08;--g-main:#3B6D11;--g-mid:#4A8018;--g-btn:#4A7C1A;
+  --g-light:#5A9B22;--g-pale:#EAF3DC;--g-bg:#F5F8F0;
+  --orange:#E07A2B;--orange-bg:#FEF1E6;--red:#D13030;--red-bg:#FDEAEA;
+  --white:#FFFFFF;--gray-50:#F9F9F7;--gray-100:#F0F0EC;--gray-200:#E0E0D8;
+  --gray-400:#A8A89E;--gray-600:#6A6A60;--gray-700:#4A4A44;--gray-800:#252520;
+  --radius:14px;--shadow:0 2px 12px rgba(30,58,8,.12);
+  --blue:#1565C0;--blue-bg:#E3F2FD;
+  --score-high:#2E7D32;--score-med:#E07A2B;--score-low:#D13030;
+  --pix:#00897B;--pix-bg:#E0F2F1;
+}
+body{font-family:'DM Sans',sans-serif;background:#111D08;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;padding:32px 16px 48px;gap:0;}
+.app-header{text-align:center;margin-bottom:32px;color:#fff;}
+.app-header h1{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;letter-spacing:-1.5px;line-height:1;}
+.app-header h1 span{color:#8DC948}
+.app-header p{font-size:.85rem;color:#7CA84A;margin-top:4px;letter-spacing:.5px;}
+.phone-wrap{display:flex;flex-direction:column;align-items:center;}
+.phone{width:320px;background:#0A0A0A;border-radius:44px;padding:14px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07),0 24px 60px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.05);
+  position:relative;}
+.phone-screen{background:#fff;border-radius:32px;overflow:hidden;height:640px;
+  display:flex;flex-direction:column;position:relative;}
+.status-bar{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 18px 4px;font-size:.7rem;font-weight:600;flex-shrink:0;}
+.status-bar.dark{background:var(--g-dark);color:rgba(255,255,255,.9)}
+.status-bar.light{background:#fff;color:var(--gray-800)}
+.sb-right{display:flex;gap:4px;align-items:center}
+.bottom-nav{display:flex;justify-content:space-around;align-items:center;
+  padding:10px 8px 12px;border-top:1px solid var(--gray-200);background:#fff;flex-shrink:0;}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:.6rem;color:var(--gray-400);font-weight:500;cursor:pointer;}
+.bn-item.active{color:var(--g-btn)}
+.bn-item svg{width:18px;height:18px}
+.screen-body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+.screen-body::-webkit-scrollbar{display:none}
+/* SPLASH */
+.screen-splash{background:var(--g-dark);height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:32px 28px;}
+.splash-logo-ring{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+.splash-logo-ring svg{width:36px;height:36px;color:#fff}
+.splash-app-name{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;
+  color:#fff;letter-spacing:-2px;line-height:1;}
+.splash-tagline{font-size:.8rem;color:rgba(255,255,255,.55);margin-bottom:36px;margin-top:4px;}
+.splash-field{width:100%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);
+  border-radius:10px;padding:12px 16px;color:#fff;font-family:'DM Sans',sans-serif;
+  font-size:.9rem;margin-bottom:10px;outline:none;}
+.splash-field::placeholder{color:rgba(255,255,255,.45)}
+.btn-primary{width:100%;padding:14px;background:var(--g-light);color:#fff;border:none;
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;
+  cursor:pointer;margin-top:6px;}
+.splash-forgot{font-size:.78rem;color:rgba(255,255,255,.45);margin-top:14px;cursor:pointer;}
+.splash-error{font-size:.78rem;color:#ff8080;margin-top:6px;text-align:center;}
+/* DASH */
+.dash-header{background:var(--g-dark);padding:14px 18px 18px;color:#fff;flex-shrink:0;}
+.dash-top{display:flex;justify-content:space-between;align-items:flex-start;}
+.dash-greeting{font-size:.8rem;color:rgba(255,255,255,.65)}
+.dash-avatar{width:34px;height:34px;border-radius:50%;background:var(--g-light);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;}
+.dash-total-label{font-size:.75rem;color:rgba(255,255,255,.6);margin-top:16px}
+.dash-total-value{font-size:2rem;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1.1}
+.dash-subtitle{font-size:.72rem;color:rgba(255,255,255,.5);margin-top:2px}
+.dash-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px 14px 0;}
+.dash-card{background:var(--g-bg);border-radius:10px;padding:10px 12px;}
+.dash-card-label{font-size:.68rem;color:var(--gray-600)}
+.dash-card-value{font-size:1rem;font-weight:700;color:var(--gray-800);margin-top:2px}
+.dash-card-value.red{color:var(--red)}
+.dash-devedores{padding:0 14px;margin-top:12px;}
+.dash-section-title{font-size:.72rem;font-weight:600;color:var(--gray-600);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.client-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.client-row:last-child{border-bottom:none}
+.avatar-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;}
+.client-info{flex:1}
+.client-name{font-size:.82rem;font-weight:600;color:var(--gray-800)}
+.client-meta{font-size:.68rem;color:var(--gray-400)}
+.client-value{font-size:.85rem;font-weight:700;color:var(--red);text-align:right}
+/* LISTA */
+.list-header{padding:16px 16px 12px;flex-shrink:0;}
+.list-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.list-title{font-size:1.3rem;font-weight:700;color:var(--gray-800)}
+.dot-online{width:14px;height:14px;border-radius:50%;background:var(--g-light);
+  box-shadow:0 0 0 3px rgba(90,155,34,.2);}
+.search-box{width:100%;background:var(--gray-100);border:none;border-radius:10px;
+  padding:9px 14px;font-family:'DM Sans',sans-serif;font-size:.83rem;color:var(--gray-800);
+  outline:none;margin-bottom:10px;}
+.search-box::placeholder{color:var(--gray-400)}
+.filter-tabs{display:flex;gap:6px;margin-bottom:4px}
+.filter-tab{padding:5px 14px;border-radius:20px;border:1.5px solid var(--gray-200);
+  font-size:.72rem;font-weight:600;background:#fff;color:var(--gray-600);cursor:pointer;}
+.filter-tab.active{background:var(--g-btn);border-color:var(--g-btn);color:#fff;}
+.client-list-item{display:flex;align-items:center;gap:10px;padding:11px 16px;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.cli-info{flex:1}
+.cli-name{font-size:.85rem;font-weight:600;color:var(--gray-800)}
+.cli-time{font-size:.68rem;color:var(--gray-400)}
+.cli-right{text-align:right}
+.cli-value{font-size:.85rem;font-weight:700;color:var(--red)}
+.cli-status{font-size:.65rem;font-weight:600;margin-top:2px}
+.cli-status.devendo{color:var(--red)}
+.cli-status.quite{color:var(--g-light)}
+.chevron{color:var(--gray-400);font-size:.7rem;margin-left:4px}
+/* PERFIL */
+.profile-header{padding:12px 16px 16px;flex-shrink:0;}
+.back-link{font-size:.75rem;color:var(--g-btn);display:flex;align-items:center;gap:4px;
+  margin-bottom:10px;cursor:pointer;}
+.profile-top{display:flex;align-items:center;gap:10px}
+.profile-name{font-size:1rem;font-weight:700;color:var(--gray-800)}
+.profile-phone{font-size:.75rem;color:var(--gray-400)}
+.profile-balances{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 14px;}
+.balance-box{background:var(--gray-50);border-radius:10px;padding:10px 12px;}
+.balance-label{font-size:.68rem;color:var(--gray-600)}
+.balance-value{font-size:1.05rem;font-weight:700;color:var(--gray-800);margin-top:2px}
+.balance-value.red{color:var(--red)}
+.profile-actions{display:flex;gap:6px;padding:0 16px 8px;flex-wrap:wrap;}
+.btn-action{flex:1;padding:9px 6px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.72rem;font-weight:600;border:none;cursor:pointer;min-width:60px;}
+.btn-green{background:var(--g-btn);color:#fff}
+.btn-outline{background:#fff;color:var(--gray-700);border:1.5px solid var(--gray-200)}
+.btn-red-outline{background:#fff;color:var(--red);border:1.5px solid #F5C0C0}
+.btn-blue-outline{background:#fff;color:var(--blue);border:1.5px solid #BBDEFB}
+.btn-pix{background:var(--pix);color:#fff}
+.hist-section{padding:0 16px}
+.hist-item{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--gray-100);}
+.hist-icon{width:28px;height:28px;border-radius:8px;background:var(--red-bg);
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;
+  color:var(--red);flex-shrink:0;}
+.hist-icon.pag{background:var(--g-pale);color:var(--g-btn)}
+.hist-icon.parc{background:var(--blue-bg);color:var(--blue)}
+.hist-icon.pix{background:var(--pix-bg);color:var(--pix)}
+.hist-desc{font-size:.82rem;font-weight:500;color:var(--gray-800)}
+.hist-date{font-size:.67rem;color:var(--gray-400)}
+.hist-value{font-size:.85rem;font-weight:700;color:var(--red);margin-left:auto;white-space:nowrap;}
+.hist-value.green{color:var(--g-btn)}
+.hist-value.blue{color:var(--blue)}
+.hist-value.pix{color:var(--pix)}
+/* LANÇAMENTO */
+.launch-header{padding:14px 16px 12px;flex-shrink:0;}
+.launch-title{font-size:1.1rem;font-weight:700;color:var(--gray-800);margin-bottom:12px}
+.tab-pills{display:flex;gap:6px;margin-bottom:0;flex-wrap:wrap;}
+.tab-pill{padding:6px 14px;border-radius:20px;border:1.5px solid var(--gray-200);
+  font-size:.75rem;font-weight:600;background:#fff;color:var(--gray-600);cursor:pointer;}
+.tab-pill.active{background:var(--g-btn);border-color:var(--g-btn);color:#fff;}
+.launch-body{padding:14px 16px}
+.field-label{font-size:.72rem;font-weight:600;color:var(--gray-600);margin-bottom:4px}
+.field-input{width:100%;background:var(--gray-100);border:1.5px solid var(--gray-200);
+  border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.88rem;
+  color:var(--gray-800);outline:none;margin-bottom:12px;}
+.field-input:focus{border-color:var(--g-btn)}
+.field-select{width:100%;background:var(--gray-100);border:1.5px solid var(--gray-200);
+  border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.88rem;
+  color:var(--gray-800);outline:none;margin-bottom:12px;appearance:none;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.client-selector{display:flex;align-items:center;gap:6px;padding:10px 14px;
+  background:var(--gray-100);border-radius:10px;margin-bottom:12px;cursor:pointer;}
+.cs-name{font-size:.88rem;font-weight:600;color:var(--gray-800)}
+.cs-arrow{font-size:.7rem;color:var(--g-btn);margin-left:auto}
+.saldo-alert{background:var(--red-bg);border-radius:10px;padding:10px 14px;margin-bottom:12px;}
+.sa-label{font-size:.68rem;color:var(--red);font-weight:600}
+.sa-value{font-size:1.1rem;font-weight:700;color:var(--red)}
+.btn-save{width:100%;padding:14px;background:var(--g-btn);color:#fff;border:none;
+  border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:600;
+  cursor:pointer;margin-bottom:10px;}
+.btn-cancel{width:100%;padding:12px;background:#fff;color:var(--gray-600);
+  border:1.5px solid var(--gray-200);border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.9rem;font-weight:500;cursor:pointer;}
+/* RELATÓRIO */
+.report-header{padding:14px 16px 12px;flex-shrink:0;}
+.report-title{font-size:1.2rem;font-weight:700;color:var(--gray-800);margin-bottom:12px}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.report-box{background:var(--gray-50);border-radius:10px;padding:10px 12px}
+.rb-label{font-size:.68rem;color:var(--gray-600)}
+.rb-value{font-size:1rem;font-weight:700;margin-top:2px}
+.rb-value.green{color:var(--g-main)}
+.rb-value.red{color:var(--red)}
+.rb-value.orange{color:var(--orange)}
+.rb-value.dark{color:var(--gray-800)}
+.alert-banner{background:var(--orange);border-radius:10px;padding:10px 14px;
+  display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.ab-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0}
+.ab-text{font-size:.78rem;font-weight:600;color:#fff}
+.section-label{font-size:.72rem;font-weight:600;color:var(--gray-600);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.report-client-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--gray-100);}
+.cobrar-btns{display:flex;gap:6px;margin:6px 0 4px;}
+.cobrar-btn{display:flex;align-items:center;gap:5px;border-radius:20px;padding:7px 12px;
+  font-size:.7rem;font-weight:600;cursor:pointer;border:none;}
+.cobrar-btn.wpp{background:var(--g-btn);color:#fff;}
+.cobrar-btn.sms{background:var(--blue-bg);color:var(--blue);}
+.cobrar-btn.pix-btn{background:var(--pix-bg);color:var(--pix);}
+.cobrar-btn svg{width:13px;height:13px;flex-shrink:0}
+/* CADASTRO */
+.cadastro-header{padding:14px 16px 12px;flex-shrink:0;}
+.cad-back{font-size:.75rem;color:var(--g-btn);cursor:pointer;margin-bottom:4px;}
+.cad-title{font-size:1.2rem;font-weight:700;color:var(--gray-800)}
+.cad-body{padding:14px 16px}
+/* OVERLAY/MODALS */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:50;
+  display:flex;align-items:flex-end;border-radius:32px;overflow:hidden;}
+.modal-sheet{width:100%;background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 28px;
+  max-height:80%;overflow-y:auto;}
+.modal-title{font-size:1rem;font-weight:700;color:var(--gray-800);margin-bottom:16px}
+.modal-client-item{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--gray-100);cursor:pointer;}
+.modal-client-item:last-child{border-bottom:none}
+.toast{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--g-dark);color:#fff;padding:9px 18px;border-radius:20px;
+  font-size:.78rem;font-weight:600;z-index:100;white-space:nowrap;
+  animation:fadeUpDown 2.5s ease forwards;}
+@keyframes fadeUpDown{0%{opacity:0;transform:translateX(-50%) translateY(10px)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0)}
+  80%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-6px)}}
+.confirm-dialog{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:flex;align-items:center;justify-content:center;border-radius:32px;}
+.confirm-box{background:#fff;border-radius:16px;padding:20px;margin:24px;width:100%;}
+.confirm-title{font-size:.95rem;font-weight:700;color:var(--gray-800);margin-bottom:6px}
+.confirm-text{font-size:.8rem;color:var(--gray-600);margin-bottom:16px}
+.confirm-btns{display:flex;gap:8px;}
+.confirm-btn{flex:1;padding:10px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.85rem;font-weight:600;border:none;cursor:pointer;}
+.confirm-btn.cancel{background:var(--gray-100);color:var(--gray-700)}
+.confirm-btn.danger{background:var(--red);color:#fff}
+.balance-box-clickable{cursor:pointer;}
+.limit-edit-hint{font-size:.6rem;color:var(--g-btn);margin-top:3px;font-weight:600;}
+.limit-modal{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:flex;align-items:center;justify-content:center;border-radius:32px;}
+.limit-box{background:#fff;border-radius:16px;padding:20px;margin:24px;width:100%;}
+.limit-box-title{font-size:.95rem;font-weight:700;color:var(--gray-800);margin-bottom:4px;}
+.limit-box-sub{font-size:.75rem;color:var(--gray-400);margin-bottom:14px;}
+.limit-input{width:100%;background:var(--gray-100);border:1.5px solid var(--g-btn);
+  border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:1rem;
+  font-weight:700;color:var(--gray-800);outline:none;margin-bottom:14px;text-align:center;}
+.limit-btns{display:flex;gap:8px;}
+.limit-btn{flex:1;padding:10px;border-radius:10px;font-family:'DM Sans',sans-serif;
+  font-size:.85rem;font-weight:600;border:none;cursor:pointer;}
+.limit-btn.cancel{background:var(--gray-100);color:var(--gray-700);}
+.limit-btn.save{background:var(--g-btn);color:#fff;}
+.limit-btn.remove{background:#fff;color:var(--red);border:1.5px solid #F5C0C0;font-size:.78rem;margin-bottom:8px;width:100%;}
+.limit-progress-wrap{margin-bottom:10px;}
+.limit-progress-label{display:flex;justify-content:space-between;font-size:.67rem;color:var(--gray-600);margin-bottom:4px;}
+.limit-progress-bar{height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;}
+.limit-progress-fill{height:100%;border-radius:3px;}
+/* AGENDA */
+.agenda-header{padding:14px 16px 12px;flex-shrink:0;}
+.agenda-title{font-size:1.1rem;font-weight:700;color:var(--gray-800);margin-bottom:4px}
+.agenda-sub{font-size:.72rem;color:var(--gray-400);margin-bottom:12px;}
+.agenda-body{padding:14px 16px}
+.agenda-item{background:var(--gray-50);border-radius:10px;padding:10px 12px;margin-bottom:10px;position:relative;}
+.agenda-item-name{font-size:.82rem;font-weight:600;color:var(--gray-800)}
+.agenda-item-info{font-size:.68rem;color:var(--gray-400);margin-top:2px}
+.agenda-item-canal{font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:20px;
+  display:inline-block;margin-top:4px;}
+.canal-wpp{background:var(--g-pale);color:var(--g-btn)}
+.canal-sms{background:var(--blue-bg);color:var(--blue)}
+.agenda-del{position:absolute;top:10px;right:10px;background:none;border:none;
+  cursor:pointer;color:var(--gray-400);font-size:.85rem;}
+.parc-badge{font-size:.6rem;font-weight:700;background:var(--blue-bg);color:var(--blue);
+  padding:2px 6px;border-radius:20px;margin-left:4px;vertical-align:middle;}
+/* MÉTODO PAGAMENTO */
+.metodo-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.metodo-btn{padding:7px 12px;border-radius:20px;border:1.5px solid var(--gray-200);
+  font-size:.75rem;font-weight:600;background:#fff;color:var(--gray-600);cursor:pointer;}
+.metodo-btn.active{background:var(--g-btn);border-color:var(--g-btn);color:#fff;}
+
+/* ══════════════════════════════════
+   NOVOS: SCORE, RISCO, PIX, ALERTAS
+   ══════════════════════════════════ */
+
+/* Score badge inline */
+.score-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;
+  border-radius:20px;font-size:.65rem;font-weight:700;}
+.score-badge.alto{background:#E8F5E9;color:var(--score-high);}
+.score-badge.medio{background:#FFF3E0;color:var(--score-med);}
+.score-badge.baixo{background:#FDEAEA;color:var(--score-low);}
+
+/* Painel Score no perfil */
+.score-panel{margin:0 16px 12px;border-radius:12px;padding:12px 14px;border:1.5px solid var(--gray-200);}
+.score-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.score-panel-title{font-size:.72rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.4px;}
+.score-gauge{display:flex;align-items:center;gap:10px;}
+.score-ring{position:relative;width:54px;height:54px;flex-shrink:0;}
+.score-ring svg{width:54px;height:54px;transform:rotate(-90deg);}
+.score-ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:800;color:var(--gray-800);}
+.score-info{flex:1}
+.score-label{font-size:.75rem;font-weight:700;}
+.score-desc{font-size:.65rem;color:var(--gray-400);margin-top:2px;line-height:1.4;}
+.score-factors{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+.score-factor{background:var(--gray-50);border-radius:8px;padding:6px 8px;}
+.sf-label{font-size:.6rem;color:var(--gray-400);}
+.sf-val{font-size:.72rem;font-weight:700;color:var(--gray-800);margin-top:1px;}
+
+/* Risco banner no lançamento */
+.risco-banner{border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.risco-banner.verde{background:#E8F5E9;}
+.risco-banner.amarelo{background:#FFF3E0;}
+.risco-banner.vermelho{background:#FDEAEA;}
+.risco-icon{font-size:1rem;flex-shrink:0;}
+.risco-text{font-size:.72rem;font-weight:600;}
+.risco-banner.verde .risco-text{color:var(--score-high);}
+.risco-banner.amarelo .risco-text{color:var(--score-med);}
+.risco-banner.vermelho .risco-text{color:var(--score-low);}
+
+/* PIX QR modal */
+.pix-modal{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:200;
+  display:flex;align-items:center;justify-content:center;border-radius:32px;}
+.pix-box{background:#fff;border-radius:16px;padding:20px;margin:20px;width:100%;max-height:90%;overflow-y:auto;}
+.pix-title{font-size:.95rem;font-weight:700;color:var(--gray-800);margin-bottom:4px;text-align:center;}
+.pix-sub{font-size:.72rem;color:var(--gray-400);text-align:center;margin-bottom:14px;}
+.pix-qr-wrap{display:flex;justify-content:center;margin-bottom:14px;}
+.pix-qr-wrap svg{border-radius:8px;border:1px solid var(--gray-200);}
+.pix-copy-row{display:flex;gap:6px;margin-bottom:12px;}
+.pix-key-box{flex:1;background:var(--gray-100);border-radius:8px;padding:8px 10px;
+  font-size:.72rem;color:var(--gray-600);font-family:monospace;word-break:break-all;}
+.pix-copy-btn{background:var(--pix);color:#fff;border:none;border-radius:8px;
+  padding:8px 12px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+.pix-amount{text-align:center;font-size:1.2rem;font-weight:800;color:var(--gray-800);margin-bottom:4px;}
+.pix-amount-label{text-align:center;font-size:.68rem;color:var(--gray-400);margin-bottom:12px;}
+.pix-close{width:100%;padding:10px;background:var(--gray-100);color:var(--gray-700);
+  border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;}
+
+/* ALERTAS screen */
+.alertas-header{padding:14px 16px 12px;flex-shrink:0;}
+.alertas-title{font-size:1.1rem;font-weight:700;color:var(--gray-800);margin-bottom:4px;}
+.alertas-sub{font-size:.72rem;color:var(--gray-400);margin-bottom:12px;}
+.alerta-card{border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;}
+.alerta-card.critico{background:var(--red-bg);border-left:3px solid var(--red);}
+.alerta-card.atencao{background:var(--orange-bg);border-left:3px solid var(--orange);}
+.alerta-card.ok{background:var(--g-pale);border-left:3px solid var(--g-light);}
+.alerta-tipo{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.alerta-card.critico .alerta-tipo{color:var(--red);}
+.alerta-card.atencao .alerta-tipo{color:var(--orange);}
+.alerta-card.ok .alerta-tipo{color:var(--g-btn);}
+.alerta-nome{font-size:.85rem;font-weight:700;color:var(--gray-800);}
+.alerta-desc{font-size:.72rem;color:var(--gray-600);margin-top:3px;}
+.alerta-valor{font-size:.9rem;font-weight:800;margin-top:6px;}
+.alerta-card.critico .alerta-valor{color:var(--red);}
+.alerta-card.atencao .alerta-valor{color:var(--orange);}
+
+/* score na lista */
+.score-mini{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.52rem;font-weight:800;flex-shrink:0;}
+.score-mini.alto{background:#E8F5E9;color:var(--score-high);}
+.score-mini.medio{background:#FFF3E0;color:var(--score-med);}
+.score-mini.baixo{background:#FDEAEA;color:var(--score-low);}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>No<span>_F</span></h1>
+  <p>CONTROLE DE FIADO · Paulo Eduardo Ananias · Fatec Ourinhos 2026</p>
+</div>
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="phone-screen" id="phoneScreen"></div>
+  </div>
+</div>
+<script>
+/* ═══ CONSTANTES ═══ */
+const COLORS=['#2E7D32','#8B4513','#1565C0','#6A1B9A','#00695C','#E65100','#37474F','#880E4F'];
+let colorIdx=0;
+
+/* ═══ STATE ═══ */
+const state={
+  user:null,clients:[],activeClientId:null,
+  screen:'login',prevScreen:null,
+  launchMode:'fiado',filterClients:'todos',searchQuery:'',
+  agendamentos:[],alertasVistos:new Set(),
+};
+
+/* ═══ UTILITÁRIOS BÁSICOS ═══ */
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function fmt(v){return 'R$ '+v.toFixed(2).replace('.',',');}
+function fmtDate(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}).replace('.','');
+}
+function relDate(iso){
+  const diff=Date.now()-new Date(iso).getTime();
+  const days=Math.floor(diff/86400000);
+  if(days===0)return 'hoje';if(days===1)return 'ontem';return `há ${days} dias`;
+}
+function saldo(c){
+  return c.transactions.reduce((acc,t)=>
+    t.type==='fiado'||t.type==='parc'?acc+t.value:acc-t.value,0);
+}
+function today(){return new Date().toISOString().slice(0,10);}
+function initials(name){return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function nextColor(){const c=COLORS[colorIdx%COLORS.length];colorIdx++;return c;}
+function clientById(id){return state.clients.find(c=>c.id===id);}
+function activeClient(){return clientById(state.activeClientId);}
+function toast(msg){
+  const old=document.querySelector('.toast');if(old)old.remove();
+  const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.getElementById('phoneScreen').appendChild(el);
+  setTimeout(()=>el.remove(),2600);
+}
+function go(screen,prev=null){state.prevScreen=prev||state.screen;state.screen=screen;render();}
+
+/* ════════════════════════════════════════════
+   MOTOR DE SCORE DE REPUTAÇÃO (0–100)
+   ════════════════════════════════════════════
+   Fatores:
+   • Pontualidade simulada (pagamento vs. tempo aberto) – 40pts
+   • Frequência de pagamentos – 20pts
+   • Relação quitado/total – 25pts
+   • Tempo como cliente – 10pts
+   • Penalidade por saldo muito alto vs limite – 5pts
+*/
+function calcScore(c){
+  const txs=c.transactions;
+  if(txs.length===0)return{score:50,nivel:'medio',fatores:{pontualidade:50,frequencia:50,quitacao:50,tempo:50}};
+
+  const pagamentos=txs.filter(t=>t.type==='pag');
+  const debitos=txs.filter(t=>t.type==='fiado'||t.type==='parc');
+  const totalDebitado=debitos.reduce((a,t)=>a+t.value,0);
+  const totalPago=pagamentos.reduce((a,t)=>a+t.value,0);
+
+  // 1. QUITAÇÃO: % do total debitado que foi pago
+  const ratioQuit=totalDebitado>0?Math.min(1,totalPago/totalDebitado):0.5;
+  const ptQuit=Math.round(ratioQuit*25);
+
+  // 2. PONTUALIDADE: média de dias entre débito e pagamento (quanto menor melhor)
+  // Simula pareamento cronológico simples
+  let ptPont=20;
+  if(pagamentos.length>0&&debitos.length>0){
+    const firstDebit=new Date(debitos[0].date).getTime();
+    const firstPay=new Date(pagamentos[0].date).getTime();
+    const diasAtraso=Math.max(0,(firstPay-firstDebit)/86400000);
+    if(diasAtraso<=7)ptPont=40;
+    else if(diasAtraso<=15)ptPont=34;
+    else if(diasAtraso<=30)ptPont=26;
+    else if(diasAtraso<=60)ptPont=16;
+    else ptPont=8;
+  } else if(debitos.length>0&&pagamentos.length===0){
+    // nunca pagou
+    const diasAberto=(Date.now()-new Date(debitos[0].date).getTime())/86400000;
+    ptPont=diasAberto>30?4:diasAberto>14?12:20;
+  }
+
+  // 3. FREQUÊNCIA: razão pagamentos/débitos
+  const ratioFreq=debitos.length>0?Math.min(1,pagamentos.length/debitos.length):0;
+  const ptFreq=Math.round(ratioFreq*20);
+
+  // 4. TEMPO: meses desde primeiro lançamento
+  const firstTx=txs.reduce((mn,t)=>t.date<mn?t.date:mn,txs[0].date);
+  const meses=Math.floor((Date.now()-new Date(firstTx).getTime())/(86400000*30));
+  const ptTempo=Math.min(10,meses*2);
+
+  // 5. PENALIDADE limite
+  let ptLimite=5;
+  if(c.limit>0){
+    const pct=saldo(c)/c.limit;
+    if(pct>=1)ptLimite=0;
+    else if(pct>=0.75)ptLimite=2;
+  }
+
+  const score=Math.min(100,ptQuit+ptPont+ptFreq+ptTempo+ptLimite);
+  const nivel=score>=70?'alto':score>=40?'medio':'baixo';
+  return{score,nivel,fatores:{
+    pontualidade:Math.round((ptPont/40)*100),
+    frequencia:Math.round(ratioFreq*100),
+    quitacao:Math.round(ratioQuit*100),
+    tempo:Math.min(100,meses*10),
+  }};
+}
+
+function scoreLabel(nivel){return nivel==='alto'?'Bom pagador':nivel==='medio'?'Regular':'Alto risco';}
+function scoreColor(nivel){return nivel==='alto'?'#2E7D32':nivel==='medio'?'#E07A2B':'#D13030';}
+
+/* ════════════════════════════════════════
+   ANÁLISE DE RISCO DE CRÉDITO
+   Retorna: {risco:'verde'|'amarelo'|'vermelho', msg}
+════════════════════════════════════════ */
+function analisarRisco(c,valorPretendido=0){
+  const {score,nivel}=calcScore(c);
+  const s=saldo(c);
+  const novoSaldo=s+valorPretendido;
+
+  // Critério 1: Limite excedido
+  if(c.limit>0&&novoSaldo>c.limit)
+    return{risco:'vermelho',msg:`Limite de ${fmt(c.limit)} será excedido`};
+
+  // Critério 2: Score baixo + já tem dívida
+  if(nivel==='baixo'&&s>0)
+    return{risco:'vermelho',msg:`Score baixo (${score}/100) — alto risco de inadimplência`};
+
+  // Critério 3: Score médio ou limite quase no limite
+  if(nivel==='medio'||( c.limit>0&&novoSaldo/c.limit>0.75))
+    return{risco:'amarelo',msg:`Score ${score}/100 — acompanhe de perto`};
+
+  // Critério 4: Score alto, tudo certo
+  return{risco:'verde',msg:`Score ${score}/100 — bom histórico de pagamentos`};
+}
+
+/* ════════════════════════════════════════
+   GERAÇÃO DE ALERTAS AUTOMÁTICOS
+════════════════════════════════════════ */
+function gerarAlertas(){
+  const alertas=[];
+  state.clients.forEach(c=>{
+    const s=saldo(c);if(s<=0)return;
+    const {score,nivel}=calcScore(c);
+    const txs=c.transactions;
+    const ultimoDebito=txs.filter(t=>t.type==='fiado'||t.type==='parc').slice(-1)[0];
+    const ultimoPag=txs.filter(t=>t.type==='pag').slice(-1)[0];
+    const diasSemPag=ultimoPag
+      ?(Date.now()-new Date(ultimoPag.date).getTime())/86400000
+      :(Date.now()-new Date(txs[0].date).getTime())/86400000;
+
+    // CRÍTICO: > 45 dias sem pagar OU score baixo + dívida > R$100
+    if(diasSemPag>45||(nivel==='baixo'&&s>100)){
+      alertas.push({tipo:'critico',cliente:c,valor:s,
+        desc:diasSemPag>45?`${Math.floor(diasSemPag)} dias sem pagamento`:`Score ${score}/100 · risco elevado`});
+      return;
+    }
+    // ATENÇÃO: > 20 dias sem pagar OU limite quase no teto
+    const limPct=c.limit>0?s/c.limit:0;
+    if(diasSemPag>20||limPct>=0.75){
+      alertas.push({tipo:'atencao',cliente:c,valor:s,
+        desc:limPct>=0.75?`${Math.round(limPct*100)}% do limite utilizado`:`${Math.floor(diasSemPag)} dias sem pagamento`});
+    }
+  });
+  return alertas.sort((a,b)=>(a.tipo==='critico'?0:1)-(b.tipo==='critico'?0:1));
+}
+
+/* ════════════════════════════════════════
+   PIX — Geração de QR e chave
+════════════════════════════════════════ */
+function gerarPixPayload(nome,valor,chave){
+  // Payload EMVCo simplificado (apenas para demonstração visual)
+  const v=valor.toFixed(2);
+  return `00020126580014BR.GOV.BCB.PIX0136${chave}52040000530398654${String(v.length).padStart(2,'0')}${v}5802BR5913${nome.slice(0,13).padEnd(13)}6009SAO PAULO62070503NOF6304ABCD`;
+}
+
+function drawQR(canvas,data){
+  // QR Code visual simplificado (demonstração — não é QR real decodificável)
+  const size=128,cell=4,mod=Math.floor(size/cell);
+  const ctx=canvas.getContext('2d');
+  canvas.width=canvas.height=size;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,size,size);
+  // seed do texto para determinismo visual
+  let seed=0;for(let i=0;i<data.length;i++)seed=(seed*31+data.charCodeAt(i))&0xFFFFFF;
+  const rnd=()=>{seed=(seed*1664525+1013904223)&0xFFFFFF;return seed/0xFFFFFF;};
+  ctx.fillStyle='#000';
+  // position markers
+  const marker=(x,y)=>{
+    ctx.fillRect(x*cell,y*cell,7*cell,7*cell);
+    ctx.fillStyle='#fff';ctx.fillRect((x+1)*cell,(y+1)*cell,5*cell,5*cell);
+    ctx.fillStyle='#000';ctx.fillRect((x+2)*cell,(y+2)*cell,3*cell,3*cell);
+    ctx.fillStyle='#000';
+  };
+  marker(0,0);marker(mod-7,0);marker(0,mod-7);
+  // data modules
+  for(let r=0;r<mod;r++)for(let c2=0;c2<mod;c2++){
+    if((r<8&&c2<8)||(r<8&&c2>=mod-8)||(r>=mod-8&&c2<8))continue;
+    if(rnd()>0.5)ctx.fillRect(c2*cell,r*cell,cell,cell);
+  }
+}
+
+function showPixModal(c,ps){
+  const s=Math.max(0,saldo(c));
+  const pixKey=c.pixKey||'nof@pagamento.com.br';
+  const payload=gerarPixPayload(c.name,s,pixKey);
+
+  const overlay=document.createElement('div');overlay.className='pix-modal';
+  const box=document.createElement('div');box.className='pix-box';
+  box.innerHTML=`
+    <div class="pix-title">💠 Pagar com Pix</div>
+    <div class="pix-sub">${c.name} · Saldo devedor</div>
+    <div class="pix-amount">${fmt(s)}</div>
+    <div class="pix-amount-label">valor total em aberto</div>
+    <div class="pix-qr-wrap"><canvas id="pixCanvas" width="128" height="128"></canvas></div>
+    <div class="pix-copy-row">
+      <div class="pix-key-box" id="pixKeyBox">${pixKey}</div>
+      <button class="pix-copy-btn" id="pixCopyBtn">Copiar</button>
+    </div>
+    <div style="font-size:.65rem;color:var(--gray-400);margin-bottom:12px;text-align:center;">
+      QR meramente ilustrativo · Integre sua chave Pix real no cadastro do cliente
+    </div>
+    <button class="pix-close" id="pixClose">Fechar</button>`;
+  box.querySelector('#pixClose').addEventListener('click',()=>overlay.remove());
+  box.querySelector('#pixCopyBtn').addEventListener('click',()=>{
+    navigator.clipboard?.writeText(pixKey).catch(()=>{});
+    toast('Chave Pix copiada!');
+  });
+  overlay.appendChild(box);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  ps.appendChild(overlay);
+  setTimeout(()=>{
+    const canvas=box.querySelector('#pixCanvas');
+    if(canvas)drawQR(canvas,payload);
+  },50);
+}
+
+/* ═══════════════════ NAV / STATUS ═══════════════════ */
+function navIcons(){return{
+  home:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>`,
+  users:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+  report:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  bell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+};}
+function bottomNav(active){
+  const ic=navIcons();
+  const alertCount=gerarAlertas().filter(a=>a.tipo==='critico').length;
+  const div=document.createElement('div');div.className='bottom-nav';
+  div.innerHTML=`
+    <div class="bn-item ${active==='home'?'active':''}" data-nav="dashboard">${ic.home}Início</div>
+    <div class="bn-item ${active==='clientes'?'active':''}" data-nav="clientes">${ic.users}Clientes</div>
+    <div class="bn-item ${active==='alertas'?'active':''}" data-nav="alertas" style="position:relative">
+      ${ic.alert}Alertas${alertCount>0?`<span style="position:absolute;top:-2px;right:12px;background:var(--red);color:#fff;font-size:.52rem;font-weight:800;padding:1px 4px;border-radius:8px;">${alertCount}</span>`:''}
+    </div>
+    <div class="bn-item ${active==='relatorio'?'active':''}" data-nav="relatorio">${ic.report}Relatório</div>
+  `;
+  div.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.nav)));
+  return div;
+}
+function statusBar(dark=false){
+  const bar=document.createElement('div');bar.className=`status-bar ${dark?'dark':'light'}`;
+  const now=new Date();
+  bar.innerHTML=`<span>${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}</span><div class="sb-right">●●●</div>`;
+  return bar;
+}
+function avatarCircle(c,size=32,fontSize='.7rem'){
+  const el=document.createElement('div');el.className='avatar-circle';
+  el.style.cssText=`background:${c.color};width:${size}px;height:${size}px;font-size:${fontSize};`;
+  el.textContent=c.initials;return el;
+}
+
+/* ═══════════════════ LOGIN ═══════════════════ */
+function renderLogin(ps){
+  const div=document.createElement('div');div.className='screen-splash';div.style.height='100%';
+  div.innerHTML=`
+    <div class="splash-logo-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21"/></svg>
+    </div>
+    <div class="splash-app-name">No_F</div>
+    <div class="splash-tagline">controle de fiado inteligente</div>
+    <input id="loginUser" class="splash-field" type="text" placeholder="Usuário">
+    <input id="loginPass" class="splash-field" type="password" placeholder="Senha">
+    <button class="btn-primary" id="btnEntrar">Entrar</button>
+    <div class="splash-forgot">Esqueci a senha</div>
+    <div class="splash-error" id="loginErr" style="display:none"></div>
+  `;
+  ps.appendChild(div);
+  div.querySelector('#btnEntrar').addEventListener('click',()=>{
+    const u=div.querySelector('#loginUser').value.trim();
+    const p=div.querySelector('#loginPass').value;
+    if(!u||!p){const e=div.querySelector('#loginErr');e.textContent='Preencha usuário e senha';e.style.display='block';return;}
+    const saved=JSON.parse(localStorage.getItem('nof_user')||'null');
+    if(saved&&(saved.user!==u||saved.pass!==p)){const e=div.querySelector('#loginErr');e.textContent='Usuário ou senha incorretos';e.style.display='block';return;}
+    if(!saved)localStorage.setItem('nof_user',JSON.stringify({user:u,pass:p,name:u}));
+    state.user=saved||{user:u,pass:p,name:u};loadData();go('dashboard');
+  });
+}
+
+/* ═══════════════════ DASHBOARD ═══════════════════ */
+function renderDashboard(ps){
+  const totalAberto=state.clients.reduce((acc,c)=>acc+Math.max(0,saldo(c)),0);
+  const comDebito=state.clients.filter(c=>saldo(c)>0);
+  const hoje=today();
+  const fiadoHoje=state.clients.flatMap(c=>c.transactions)
+    .filter(t=>(t.type==='fiado'||t.type==='parc')&&t.date===hoje).reduce((a,t)=>a+t.value,0);
+  const pagHoje=state.clients.flatMap(c=>c.transactions)
+    .filter(t=>t.type==='pag'&&t.date===hoje).reduce((a,t)=>a+t.value,0);
+  const top=comDebito.sort((a,b)=>saldo(b)-saldo(a)).slice(0,3);
+  const nome=state.user?.name||'Comerciante';
+  const ini=nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const diaSem=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'});
+  const alertas=gerarAlertas();
+  const criticos=alertas.filter(a=>a.tipo==='critico');
+
+  ps.appendChild(statusBar(true));
+  const header=document.createElement('div');header.className='dash-header';
+  header.innerHTML=`
+    <div class="dash-top">
+      <div>
+        <div class="dash-greeting">Bom dia, ${nome.split(' ')[0]}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.5)">${diaSem}</div>
+      </div>
+      <div class="dash-avatar">${ini}</div>
+    </div>
+    <div class="dash-total-label" style="margin-top:14px">Total a receber</div>
+    <div class="dash-total-value">${fmt(totalAberto)}</div>
+    <div class="dash-subtitle">${state.clients.length} clientes · ${comDebito.length} com débito${criticos.length>0?` · ⚠ ${criticos.length} crítico${criticos.length>1?'s':''}`:''}</div>`;
+  ps.appendChild(header);
+  const body=document.createElement('div');body.className='screen-body';
+  body.innerHTML=`
+    <div class="dash-cards">
+      <div class="dash-card"><div class="dash-card-label">Clientes</div><div class="dash-card-value">${state.clients.length}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Com débito</div><div class="dash-card-value red">${comDebito.length}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Fiado hoje</div><div class="dash-card-value">${fiadoHoje>0?fmt(fiadoHoje):'—'}</div></div>
+      <div class="dash-card"><div class="dash-card-label">Recebido hoje</div><div class="dash-card-value" style="color:var(--g-main)">${pagHoje>0?fmt(pagHoje):'—'}</div></div>
+    </div>`;
+
+  // Banner de alertas críticos no dash
+  if(criticos.length>0){
+    const banner=document.createElement('div');
+    banner.style.cssText='padding:0 14px;margin-top:12px;';
+    banner.innerHTML=`
+      <div class="alert-banner" style="cursor:pointer;" id="dashAlertBanner">
+        <div class="ab-dot"></div>
+        <div class="ab-text">${criticos.length} cliente${criticos.length>1?'s':''} em situação crítica — ver alertas</div>
+      </div>`;
+    banner.querySelector('#dashAlertBanner').addEventListener('click',()=>go('alertas'));
+    body.appendChild(banner);
+  }
+
+  const devDiv=document.createElement('div');devDiv.className='dash-devedores';devDiv.style.paddingTop='14px';
+  devDiv.innerHTML=`<div class="dash-section-title">Maiores devedores</div>
+    ${top.length===0?`<div style="font-size:.8rem;color:var(--gray-400);padding:12px 0;">Nenhum devedor 🎉</div>`:''}`;
+  top.forEach(c=>{
+    const {nivel}=calcScore(c);
+    const row=document.createElement('div');row.className='client-row';
+    row.appendChild(avatarCircle(c));
+    row.innerHTML+=`
+      <div class="client-info">
+        <div class="client-name">${c.name} <span class="score-badge ${nivel}">${scoreLabel(nivel)}</span></div>
+        <div class="client-meta">${relDate(c.transactions[c.transactions.length-1]?.date||today())}</div>
+      </div>
+      <div class="client-value">${fmt(saldo(c))}</div>`;
+    row.addEventListener('click',()=>{state.activeClientId=c.id;go('perfil','dashboard');});
+    devDiv.appendChild(row);
+  });
+  body.appendChild(devDiv);
+  ps.appendChild(body);ps.appendChild(bottomNav('home'));
+}
+
+/* ═══════════════════ CLIENTES ═══════════════════ */
+function renderClientes(ps){
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='list-header';
+  header.innerHTML=`
+    <div class="list-title-row">
+      <div class="list-title">Clientes</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="dot-online"></div>
+        <div style="font-size:.72rem;color:var(--g-btn);cursor:pointer;font-weight:600;" id="btnAddCli">+ Novo</div>
+      </div>
+    </div>
+    <input class="search-box" id="searchBox" placeholder="Buscar cliente..." value="${state.searchQuery}">
+    <div class="filter-tabs">
+      <div class="filter-tab ${state.filterClients==='todos'?'active':''}" data-f="todos">Todos</div>
+      <div class="filter-tab ${state.filterClients==='devendo'?'active':''}" data-f="devendo">Devedores</div>
+      <div class="filter-tab ${state.filterClients==='quite'?'active':''}" data-f="quite">Quitado</div>
+      <div class="filter-tab ${state.filterClients==='risco'?'active':''}" data-f="risco">Alto risco</div>
+    </div>`;
+  header.querySelector('#btnAddCli').addEventListener('click',()=>go('cadastro','clientes'));
+  header.querySelector('#searchBox').addEventListener('input',e=>{state.searchQuery=e.target.value;render();});
+  header.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('click',()=>{state.filterClients=el.dataset.f;render();}));
+  ps.appendChild(header);
+  const body=document.createElement('div');body.className='screen-body';
+  let list=[...state.clients];
+  if(state.searchQuery){const q=state.searchQuery.toLowerCase();list=list.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q));}
+  if(state.filterClients==='devendo')list=list.filter(c=>saldo(c)>0);
+  if(state.filterClients==='quite')list=list.filter(c=>saldo(c)<=0);
+  if(state.filterClients==='risco')list=list.filter(c=>calcScore(c).nivel==='baixo');
+  if(list.length===0){
+    body.innerHTML=`<div style="text-align:center;padding:32px 16px;color:var(--gray-400);font-size:.85rem;">${state.clients.length===0?'Nenhum cliente cadastrado ainda.<br><br>Toque em <b>+ Novo</b> para começar.':'Nenhum cliente encontrado.'}</div>`;
+  }else{
+    list.forEach(c=>{
+      const s=saldo(c);const last=c.transactions[c.transactions.length-1];
+      const {score,nivel}=calcScore(c);
+      const row=document.createElement('div');row.className='client-list-item';
+      row.appendChild(avatarCircle(c));
+      row.innerHTML+=`
+        <div class="cli-info">
+          <div class="cli-name">${c.name}</div>
+          <div class="cli-time">${last?relDate(last.date):'sem lançamentos'}</div>
+        </div>
+        <div class="cli-right">
+          <div class="cli-value" style="${s<=0?'color:var(--gray-400)':''}">${s>0?fmt(s):'—'}</div>
+          <div class="cli-status ${s>0?'devendo':'quite'}">${s>0?'devendo':'quitado'}</div>
+        </div>
+        <div class="score-mini ${nivel}" title="Score ${score}">${score}</div>
+        <span class="chevron">›</span>`;
+      row.addEventListener('click',()=>{state.activeClientId=c.id;go('perfil','clientes');});
+      body.appendChild(row);
+    });
+  }
+  ps.appendChild(body);ps.appendChild(bottomNav('clientes'));
+}
+
+/* ═══════════════════ PERFIL CLIENTE ═══════════════════ */
+function renderPerfil(ps){
+  const c=activeClient();if(!c){go('clientes');return;}
+  const s=saldo(c);
+  const {score,nivel,fatores}=calcScore(c);
+
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='profile-header';
+  header.innerHTML=`
+    <div class="back-link" id="backBtn">‹ ${state.prevScreen==='dashboard'?'Início':'Clientes'}</div>
+    <div class="profile-top">
+      <div style="width:40px;height:40px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;flex-shrink:0;">${c.initials}</div>
+      <div>
+        <div class="profile-name">${c.name}</div>
+        <div class="profile-phone">${c.phone||'Sem telefone'}</div>
+      </div>
+    </div>`;
+  header.querySelector('#backBtn').addEventListener('click',()=>go(state.prevScreen||'clientes'));
+  ps.appendChild(header);
+
+  // BALANCES
+  const balances=document.createElement('div');balances.className='profile-balances';
+  const limPct=c.limit>0?Math.min(100,(Math.max(0,s)/c.limit)*100):0;
+  const limColor=limPct>=100?'var(--red)':limPct>=75?'var(--orange)':'var(--g-light)';
+  const progressHtml=c.limit>0?`
+    <div class="limit-progress-wrap">
+      <div class="limit-progress-label"><span>Uso</span><span>${limPct.toFixed(0)}%</span></div>
+      <div class="limit-progress-bar"><div class="limit-progress-fill" style="width:${limPct}%;background:${limColor};"></div></div>
+    </div>`:'';
+  balances.innerHTML=`
+    <div class="balance-box">
+      <div class="balance-label">Saldo devedor</div>
+      <div class="balance-value ${s>0?'red':''}">${s>0?fmt(s):'R$ 0,00'}</div>
+      ${progressHtml}
+    </div>
+    <div class="balance-box balance-box-clickable" id="limitBox">
+      <div class="balance-label">Limite de crédito</div>
+      <div class="balance-value" style="${limPct>=100?'color:var(--red)':''}">${c.limit>0?fmt(c.limit):'Sem limite'}</div>
+      <div class="limit-edit-hint">✎ Toque para editar</div>
+    </div>`;
+  balances.querySelector('#limitBox').addEventListener('click',()=>showLimitModal(c,ps,()=>{ps.innerHTML='';renderPerfil(ps);}));
+  ps.appendChild(balances);
+
+  // SCORE PANEL
+  const scorePanel=document.createElement('div');scorePanel.className='score-panel';
+  const circumference=2*Math.PI*20;
+  const dashOffset=circumference-(score/100)*circumference;
+  const sColor=scoreColor(nivel);
+  scorePanel.innerHTML=`
+    <div class="score-panel-header">
+      <span class="score-panel-title">Score de Reputação</span>
+      <span class="score-badge ${nivel}">${scoreLabel(nivel)}</span>
+    </div>
+    <div class="score-gauge">
+      <div class="score-ring">
+        <svg viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="20" fill="none" stroke="var(--gray-200)" stroke-width="3.5"/>
+          <circle cx="22" cy="22" r="20" fill="none" stroke="${sColor}" stroke-width="3.5"
+            stroke-dasharray="${circumference.toFixed(1)}"
+            stroke-dashoffset="${dashOffset.toFixed(1)}"
+            stroke-linecap="round"/>
+        </svg>
+        <div class="score-ring-num" style="color:${sColor}">${score}</div>
+      </div>
+      <div class="score-info">
+        <div class="score-label" style="color:${sColor}">${scoreLabel(nivel)}</div>
+        <div class="score-desc">${score>=70?'Histórico confiável. Libere crédito com segurança.':score>=40?'Histórico regular. Monitore os pagamentos.':'Histórico preocupante. Avalie antes de fiar.'}</div>
+      </div>
+    </div>
+    <div class="score-factors">
+      <div class="score-factor"><div class="sf-label">Pontualidade</div><div class="sf-val">${fatores.pontualidade}%</div></div>
+      <div class="score-factor"><div class="sf-label">Frequência pag.</div><div class="sf-val">${fatores.frequencia}%</div></div>
+      <div class="score-factor"><div class="sf-label">% quitado</div><div class="sf-val">${fatores.quitacao}%</div></div>
+      <div class="score-factor"><div class="sf-label">Tempo cliente</div><div class="sf-val">${fatores.tempo}%</div></div>
+    </div>`;
+  ps.appendChild(scorePanel);
+
+  // ACTIONS
+  const actions=document.createElement('div');actions.className='profile-actions';
+  actions.innerHTML=`
+    <button class="btn-action btn-green" id="btnFiado">+ Fiado</button>
+    <button class="btn-action btn-outline" id="btnPag">Pagamento</button>
+    <button class="btn-action btn-pix" id="btnPix">💠 Pix</button>
+    <button class="btn-action btn-blue-outline" id="btnAgenda">Agendar</button>
+    <button class="btn-action btn-red-outline" id="btnDel">Excluir</button>`;
+  actions.querySelector('#btnFiado').addEventListener('click',()=>{state.launchMode='fiado';go('lancamento','perfil');});
+  actions.querySelector('#btnPag').addEventListener('click',()=>{state.launchMode='pag';go('lancamento','perfil');});
+  actions.querySelector('#btnPix').addEventListener('click',()=>showPixModal(c,ps));
+  actions.querySelector('#btnAgenda').addEventListener('click',()=>showAgendarModal(c,ps));
+  actions.querySelector('#btnDel').addEventListener('click',()=>showConfirmDelete(c));
+  ps.appendChild(actions);
+
+  // HISTÓRICO
+  const body=document.createElement('div');body.className='screen-body';
+  const hist=document.createElement('div');hist.className='hist-section';
+  hist.innerHTML=`<div class="dash-section-title">Histórico</div>`;
+  const txs=[...c.transactions].reverse();
+  if(txs.length===0){
+    hist.innerHTML+=`<div style="font-size:.8rem;color:var(--gray-400);padding:12px 0;">Nenhum lançamento ainda.</div>`;
+  }else{
+    txs.forEach(t=>{
+      const item=document.createElement('div');item.className='hist-item';
+      const isPag=t.type==='pag';const isParc=t.type==='parc';
+      const iconClass=isPag?'pag':isParc?'parc':'';
+      const iconLabel=isPag?'P':isParc?'📦':'F';
+      const valorClass=isPag?'green':isParc?'blue':'';
+      const sinal=isPag?'+':'−';
+      const parcLabel=isParc&&t.parcelas>1?`<span class="parc-badge">${t.parcAtual}/${t.parcelas}x</span>`:'';
+      const metodoLabel=isPag&&t.metodo?` · ${t.metodo}`:'';
+      item.innerHTML=`
+        <div class="hist-icon ${iconClass}">${iconLabel}</div>
+        <div><div class="hist-desc">${t.desc||'(sem descrição)'}${parcLabel}</div>
+        <div class="hist-date">${fmtDate(t.date)}${metodoLabel}</div></div>
+        <div class="hist-value ${valorClass}">${sinal}${fmt(t.value)}</div>`;
+      hist.appendChild(item);
+    });
+  }
+  body.appendChild(hist);ps.appendChild(body);ps.appendChild(bottomNav('clientes'));
+}
+
+/* ═══════════════════ ALERTAS ═══════════════════ */
+function renderAlertas(ps){
+  const alertas=gerarAlertas();
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='alertas-header';
+  header.innerHTML=`
+    <div class="alertas-title">Central de Alertas</div>
+    <div class="alertas-sub">${alertas.length} alerta${alertas.length!==1?'s':''} ativo${alertas.length!==1?'s':''} · atualizado agora</div>`;
+  ps.appendChild(header);
+  const body=document.createElement('div');body.className='screen-body';
+  const inner=document.createElement('div');inner.style.padding='0 16px';
+  if(alertas.length===0){
+    inner.innerHTML=`<div style="text-align:center;padding:40px 0;font-size:.85rem;color:var(--gray-400);">Nenhum alerta no momento 🎉<br><br>Todos os clientes estão em dia!</div>`;
+  }else{
+    alertas.forEach(al=>{
+      const {score}=calcScore(al.cliente);
+      const card=document.createElement('div');card.className=`alerta-card ${al.tipo}`;
+      card.innerHTML=`
+        <div class="alerta-tipo">${al.tipo==='critico'?'🔴 Crítico':'🟡 Atenção'}</div>
+        <div class="alerta-nome">${al.cliente.name} <span class="score-badge ${calcScore(al.cliente).nivel}" style="font-size:.58rem;">${score}/100</span></div>
+        <div class="alerta-desc">${al.desc}</div>
+        <div class="alerta-valor">${fmt(al.valor)}</div>`;
+      card.addEventListener('click',()=>{state.activeClientId=al.cliente.id;go('perfil','alertas');});
+      inner.appendChild(card);
+      // botões rápidos de cobrança
+      if(al.cliente.phone){
+        const phone=al.cliente.phone.replace(/\D/g,'');
+        const msg=encodeURIComponent(`Olá ${al.cliente.name.split(' ')[0]}, seu saldo em aberto é de ${fmt(al.valor)}. Quando puder, podemos acertar? 😊`);
+        const btns=document.createElement('div');btns.className='cobrar-btns';btns.style.marginBottom='10px';
+        btns.innerHTML=`
+          <button class="cobrar-btn wpp" onclick="window.open('https://wa.me/55${phone}?text=${msg}','_blank')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 0C5.373 0 0 5.373 0 12c0 2.127.557 4.12 1.531 5.845L0 24l6.33-1.508A11.96 11.96 0 0011.998 24C18.625 24 24 18.627 24 12S18.625 0 11.998 0zm0 21.818a9.822 9.822 0 01-5.012-1.374l-.36-.214-3.755.895.952-3.65-.234-.374A9.818 9.818 0 012.18 12c0-5.42 4.4-9.818 9.818-9.818 5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/></svg>
+            WhatsApp
+          </button>
+          <button class="cobrar-btn pix-btn" onclick="state.activeClientId='${al.cliente.id}';showPixModal(clientById('${al.cliente.id}'),document.getElementById('phoneScreen'))">
+            💠 Pix
+          </button>`;
+        inner.appendChild(btns);
+      }
+    });
+  }
+  body.appendChild(inner);ps.appendChild(body);ps.appendChild(bottomNav('alertas'));
+}
+
+/* ═══════════════════ LANÇAMENTO ═══════════════════ */
+function renderLancamento(ps){
+  const preClient=state.prevScreen==='perfil'?activeClient():null;
+  let selectedClient=preClient;
+  let metodoSel='dinheiro';
+
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='launch-header';
+  header.innerHTML=`
+    <div class="launch-title">Novo lançamento</div>
+    <div class="tab-pills">
+      <div class="tab-pill ${state.launchMode==='fiado'?'active':''}" id="tabFiado">Fiado</div>
+      <div class="tab-pill ${state.launchMode==='parc'?'active':''}" id="tabParc">Parcelado</div>
+      <div class="tab-pill ${state.launchMode==='pag'?'active':''}" id="tabPag">Pagamento</div>
+    </div>`;
+  header.querySelector('#tabFiado').addEventListener('click',()=>{state.launchMode='fiado';ps.innerHTML='';renderLancamento(ps);});
+  header.querySelector('#tabParc').addEventListener('click',()=>{state.launchMode='parc';ps.innerHTML='';renderLancamento(ps);});
+  header.querySelector('#tabPag').addEventListener('click',()=>{state.launchMode='pag';ps.innerHTML='';renderLancamento(ps);});
+  ps.appendChild(header);
+
+  const body=document.createElement('div');body.className='screen-body';
+  const form=document.createElement('div');form.className='launch-body';
+
+  // cliente
+  const fieldCli=document.createElement('div');
+  fieldCli.innerHTML=`<div class="field-label">Cliente</div>`;
+  const clientSel=document.createElement('div');clientSel.className='client-selector';
+  const riscoBanner=document.createElement('div');
+  const updateClientSel=()=>{
+    clientSel.innerHTML=selectedClient
+      ?`<div style="width:26px;height:26px;border-radius:50%;background:${selectedClient.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;">${selectedClient.initials}</div>
+         <span class="cs-name">${selectedClient.name}</span>
+         <span class="score-badge ${calcScore(selectedClient).nivel}" style="font-size:.6rem;margin-left:4px;">${calcScore(selectedClient).score}</span>
+         <span class="cs-arrow">›</span>`
+      :`<span class="cs-name" style="color:var(--gray-400)">Selecionar cliente</span><span class="cs-arrow">›</span>`;
+    updateRiscoBanner();
+  };
+  const updateRiscoBanner=()=>{
+    if(!selectedClient){riscoBanner.innerHTML='';return;}
+    const valorInput=form.querySelector('#fValor');
+    const valor=valorInput?parseFloat(valorInput.value)||0:0;
+    if(state.launchMode==='pag'){riscoBanner.innerHTML='';return;}
+    const {risco,msg}=analisarRisco(selectedClient,valor);
+    const icons={verde:'✅',amarelo:'⚠️',vermelho:'🚫'};
+    riscoBanner.innerHTML=`<div class="risco-banner ${risco}"><span class="risco-icon">${icons[risco]}</span><span class="risco-text">${msg}</span></div>`;
+  };
+  updateClientSel();
+  clientSel.addEventListener('click',()=>showClientPicker(ps,c=>{selectedClient=c;updateClientSel();}));
+  fieldCli.appendChild(clientSel);form.appendChild(fieldCli);
+  form.appendChild(riscoBanner);
+
+  // saldo alert
+  const saldoAlert=document.createElement('div');
+  const updateSaldo=()=>{
+    if(state.launchMode==='pag'&&selectedClient){
+      const s=saldo(selectedClient);
+      saldoAlert.innerHTML=`<div class="saldo-alert"><div class="sa-label">Saldo devedor</div><div class="sa-value">${fmt(Math.max(0,s))}</div></div>`;
+    }else if((state.launchMode==='fiado'||state.launchMode==='parc')&&selectedClient&&selectedClient.limit>0){
+      const s=saldo(selectedClient);const disp=Math.max(0,selectedClient.limit-s);
+      const pct=Math.min(100,(s/selectedClient.limit)*100);
+      const cor=pct>=100?'var(--red)':pct>=75?'var(--orange)':'var(--g-btn)';
+      saldoAlert.innerHTML=`<div class="saldo-alert" style="background:${pct>=100?'var(--red-bg)':'var(--g-pale)'}">
+        <div class="sa-label" style="color:${cor}">Limite disponível</div>
+        <div class="sa-value" style="color:${cor}">${fmt(disp)}</div>
+        <div style="font-size:.65rem;color:var(--gray-600);margin-top:2px;">de ${fmt(selectedClient.limit)} · ${pct.toFixed(0)}% usado</div>
+      </div>`;
+    }else{saldoAlert.innerHTML='';}
+  };
+  updateSaldo();form.appendChild(saldoAlert);
+
+  if(state.launchMode==='fiado'){
+    form.innerHTML+=`<div class="field-label">Descrição</div><input class="field-input" id="fDesc" type="text" placeholder="Ex: 1 kg arroz, 2 pães...">`;
+    form.innerHTML+=`<div class="field-label">Valor (R$)</div><input class="field-input" id="fValor" type="number" min="0.01" step="0.01" placeholder="0,00">`;
+    form.innerHTML+=`<div class="field-label">Data</div><input class="field-input" id="fData" type="date" value="${today()}">`;
+  }
+  if(state.launchMode==='parc'){
+    form.innerHTML+=`<div class="field-label">Descrição</div><input class="field-input" id="fDesc" type="text" placeholder="Ex: Tênis, geladeira...">`;
+    form.innerHTML+=`<div class="field-label">Valor total (R$)</div><input class="field-input" id="fValor" type="number" min="0.01" step="0.01" placeholder="0,00">`;
+    form.innerHTML+=`<div class="field-row"><div><div class="field-label">Parcelas</div><input class="field-input" id="fParc" type="number" min="2" max="60" placeholder="Ex: 6"></div><div><div class="field-label">1ª parcela</div><input class="field-input" id="fData" type="date" value="${today()}"></div></div>`;
+  }
+  if(state.launchMode==='pag'){
+    form.innerHTML+=`<div class="field-label">Método de pagamento</div>`;
+    const metRow=document.createElement('div');metRow.className='metodo-row';
+    ['Dinheiro','Pix','Cartão','Transferência'].forEach(m=>{
+      const btn=document.createElement('button');btn.className='metodo-btn';btn.textContent=m;
+      if(m.toLowerCase()===metodoSel)btn.classList.add('active');
+      btn.addEventListener('click',()=>{
+        metodoSel=m.toLowerCase();
+        metRow.querySelectorAll('.metodo-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+      metRow.appendChild(btn);
+    });
+    form.appendChild(metRow);
+    form.innerHTML+=`<div class="field-label">Valor (R$)</div><input class="field-input" id="fValor" type="number" min="0.01" step="0.01" placeholder="0,00">`;
+    form.innerHTML+=`<div class="field-label">Data</div><input class="field-input" id="fData" type="date" value="${today()}">`;
+    form.innerHTML+=`<div class="field-label">Observação</div><input class="field-input" id="fObs" type="text" placeholder="Opcional">`;
+  }
+
+  // atualiza banner de risco ao digitar valor
+  setTimeout(()=>{
+    const fv=form.querySelector('#fValor');
+    if(fv)fv.addEventListener('input',updateRiscoBanner);
+  },50);
+
+  const btnSave=document.createElement('button');btnSave.className='btn-save';
+  btnSave.style.marginTop='8px';
+  btnSave.textContent=state.launchMode==='fiado'?'Registrar fiado':state.launchMode==='parc'?'Registrar parcelamento':'Confirmar pagamento';
+  btnSave.addEventListener('click',()=>{
+    if(!selectedClient){toast('Selecione um cliente');return;}
+    const valor=parseFloat(form.querySelector('#fValor')?.value||'0');
+    if(!valor||valor<=0){toast('Informe um valor válido');return;}
+    if(state.launchMode==='fiado'){
+      if(selectedClient.limit>0){
+        const sAtual=saldo(selectedClient);
+        if(sAtual+valor>selectedClient.limit){const disp=Math.max(0,selectedClient.limit-sAtual);toast(`⚠ Limite excedido! Disponível: ${fmt(disp)}`);return;}
+      }
+      // aviso de risco sem bloquear
+      const {risco}=analisarRisco(selectedClient,valor);
+      selectedClient.transactions.push({id:genId(),type:'fiado',value:valor,
+        desc:form.querySelector('#fDesc')?.value||'',date:form.querySelector('#fData')?.value||today()});
+      saveData();state.activeClientId=selectedClient.id;
+      toast(risco==='vermelho'?`⚠ Fiado registrado com risco elevado`:`Fiado de ${fmt(valor)} registrado!`);
+      go('perfil','clientes');
+    }else if(state.launchMode==='parc'){
+      const numParc=parseInt(form.querySelector('#fParc')?.value||'2');
+      if(numParc<2||numParc>60){toast('Informe entre 2 e 60 parcelas');return;}
+      const valorParc=valor/numParc;
+      const dataBase=new Date(form.querySelector('#fData')?.value||today());
+      const desc=form.querySelector('#fDesc')?.value||'Parcelamento';
+      if(selectedClient.limit>0){
+        const sAtual=saldo(selectedClient);
+        if(sAtual+valor>selectedClient.limit){const disp=Math.max(0,selectedClient.limit-sAtual);toast(`⚠ Limite excedido! Disponível: ${fmt(disp)}`);return;}
+      }
+      for(let i=0;i<numParc;i++){
+        const d=new Date(dataBase);d.setMonth(d.getMonth()+i);
+        selectedClient.transactions.push({id:genId(),type:'parc',value:valorParc,
+          desc,date:d.toISOString().slice(0,10),parcelas:numParc,parcAtual:i+1});
+      }
+      saveData();state.activeClientId=selectedClient.id;
+      toast(`${numParc}x de ${fmt(valorParc)} registrado!`);go('perfil','clientes');
+    }else{
+      selectedClient.transactions.push({id:genId(),type:'pag',value:valor,
+        desc:form.querySelector('#fObs')?.value||'Pagamento',
+        date:form.querySelector('#fData')?.value||today(),metodo:metodoSel});
+      saveData();state.activeClientId=selectedClient.id;
+      toast(`Pagamento de ${fmt(valor)} confirmado!`);go('perfil','clientes');
+    }
+  });
+  form.appendChild(btnSave);
+  body.appendChild(form);ps.appendChild(body);ps.appendChild(bottomNav(''));
+}
+
+/* ═══════════════════ RELATÓRIO ═══════════════════ */
+function renderRelatorio(ps){
+  const totalFiado=state.clients.flatMap(c=>c.transactions).filter(t=>t.type==='fiado'||t.type==='parc').reduce((a,t)=>a+t.value,0);
+  const totalPag=state.clients.flatMap(c=>c.transactions).filter(t=>t.type==='pag').reduce((a,t)=>a+t.value,0);
+  const emAberto=state.clients.reduce((a,c)=>a+Math.max(0,saldo(c)),0);
+  const devedores=state.clients.filter(c=>saldo(c)>0).sort((a,b)=>saldo(b)-saldo(a));
+  const altoRisco=state.clients.filter(c=>calcScore(c).nivel==='baixo').length;
+
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='report-header';
+  header.innerHTML=`
+    <div class="report-title">Relatório</div>
+    <div class="report-grid">
+      <div class="report-box"><div class="rb-label">Total fiado</div><div class="rb-value red">${fmt(totalFiado)}</div></div>
+      <div class="report-box"><div class="rb-label">Recebido</div><div class="rb-value green">${fmt(totalPag)}</div></div>
+      <div class="report-box"><div class="rb-label">Em aberto</div><div class="rb-value orange">${fmt(emAberto)}</div></div>
+      <div class="report-box"><div class="rb-label">Alto risco</div><div class="rb-value red">${altoRisco}</div></div>
+    </div>
+    ${devedores.length>0?`<div class="alert-banner"><div class="ab-dot"></div><div class="ab-text">${devedores.length} cliente${devedores.length>1?'s':''} aguarda${devedores.length===1?'':'m'} cobrança</div></div>`:''}`;
+  ps.appendChild(header);
+
+  const body=document.createElement('div');body.className='screen-body';
+  const inner=document.createElement('div');inner.style.padding='0 16px';
+  if(devedores.length===0){
+    inner.innerHTML=`<div style="text-align:center;padding:32px 0;font-size:.85rem;color:var(--gray-400);">Nenhum cliente devedor 🎉</div>`;
+  }else{
+    inner.innerHTML=`<div class="section-label">Clientes em aberto</div>`;
+    devedores.forEach(c=>{
+      const s=saldo(c);const {score,nivel}=calcScore(c);
+      const row=document.createElement('div');row.className='report-client-row';
+      row.innerHTML=`
+        <div style="width:32px;height:32px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;">${c.initials}</div>
+        <div class="cli-info">
+          <div class="cli-name">${c.name} <span class="score-badge ${nivel}" style="font-size:.58rem;">${score}/100</span></div>
+          <div class="cli-time">${c.phone||'—'}</div>
+        </div>
+        <div class="cli-value">${fmt(s)}</div>`;
+      inner.appendChild(row);
+      // botões cobrança
+      if(c.phone){
+        const phone=c.phone.replace(/\D/g,'');
+        const msg=encodeURIComponent(`Olá ${c.name.split(' ')[0]}, seu saldo em aberto é de ${fmt(s)}. Quando puder, podemos acertar? 😊`);
+        const btns=document.createElement('div');btns.className='cobrar-btns';
+        btns.innerHTML=`
+          <button class="cobrar-btn wpp" onclick="window.open('https://wa.me/55${phone}?text=${msg}','_blank')">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 0C5.373 0 0 5.373 0 12c0 2.127.557 4.12 1.531 5.845L0 24l6.33-1.508A11.96 11.96 0 0011.998 24C18.625 24 24 18.627 24 12S18.625 0 11.998 0z"/></svg>
+            WhatsApp
+          </button>
+          <button class="cobrar-btn sms" onclick="window.open('sms:${phone}?body=${msg}','_blank')">SMS</button>
+          <button class="cobrar-btn pix-btn" onclick="state.activeClientId='${c.id}';showPixModal(clientById('${c.id}'),document.getElementById('phoneScreen'))">💠 Pix</button>`;
+        inner.appendChild(btns);
+      }
+    });
+  }
+  body.appendChild(inner);ps.appendChild(body);ps.appendChild(bottomNav('relatorio'));
+}
+
+/* ═══════════════════ AGENDAMENTOS ═══════════════════ */
+function renderAgendamentos(ps){
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='agenda-header';
+  header.innerHTML=`
+    <div class="agenda-title">Cobranças agendadas</div>
+    <div class="agenda-sub">${state.agendamentos.length} agendamento${state.agendamentos.length!==1?'s':''} ativo${state.agendamentos.length!==1?'s':''}</div>`;
+  ps.appendChild(header);
+  const body=document.createElement('div');body.className='screen-body';
+  const inner=document.createElement('div');inner.className='agenda-body';
+  if(state.agendamentos.length===0){
+    inner.innerHTML=`<div style="text-align:center;padding:32px 0;font-size:.85rem;color:var(--gray-400);">Nenhum agendamento.<br><br>Acesse o perfil de um cliente para agendar cobranças.</div>`;
+  }else{
+    state.agendamentos.forEach(ag=>{
+      const c=clientById(ag.clientId);if(!c)return;
+      const item=document.createElement('div');item.className='agenda-item';
+      item.innerHTML=`
+        <div class="agenda-item-name">${c.name}</div>
+        <div class="agenda-item-info">Próxima: ${fmtDate(ag.proxData)} · Repete a cada ${ag.diasRepetir} dia${ag.diasRepetir>1?'s':''}</div>
+        <span class="agenda-item-canal ${ag.canal==='sms'?'canal-sms':'canal-wpp'}">${ag.canal==='sms'?'SMS':'WhatsApp'}</span>
+        <button class="agenda-del" data-id="${ag.id}">✕</button>`;
+      item.querySelector('.agenda-del').addEventListener('click',()=>{
+        state.agendamentos=state.agendamentos.filter(a=>a.id!==ag.id);
+        saveData();ps.innerHTML='';renderAgendamentos(ps);toast('Agendamento removido');
+      });
+      inner.appendChild(item);
+    });
+  }
+  body.appendChild(inner);ps.appendChild(body);ps.appendChild(bottomNav('agenda'));
+}
+
+/* ═══════════════════ CADASTRO ═══════════════════ */
+function renderCadastro(ps){
+  ps.appendChild(statusBar());
+  const header=document.createElement('div');header.className='cadastro-header';
+  header.innerHTML=`<div class="cad-back" id="cadBack">‹ Clientes</div><div class="cad-title">Novo cliente</div>`;
+  header.querySelector('#cadBack').addEventListener('click',()=>go('clientes'));
+  ps.appendChild(header);
+  const body=document.createElement('div');body.className='screen-body';
+  const form=document.createElement('div');form.className='cad-body';
+  form.innerHTML=`
+    <div class="field-label">Nome completo *</div>
+    <input class="field-input" id="cadNome" type="text" placeholder="Nome do cliente">
+    <div class="field-label">Telefone (WhatsApp / SMS)</div>
+    <input class="field-input" id="cadTel" type="tel" placeholder="(xx) 9xxxx-xxxx">
+    <div class="field-label">Chave Pix do cliente (para cobrança)</div>
+    <input class="field-input" id="cadPix" type="text" placeholder="CPF, e-mail, telefone ou aleatória">
+    <div class="field-label">Limite de crédito (R$)</div>
+    <input class="field-input" id="cadLimite" type="number" min="0" step="0.01" placeholder="0,00">`;
+  const btnSave=document.createElement('button');btnSave.className='btn-save';btnSave.textContent='Salvar cliente';btnSave.style.marginTop='16px';
+  btnSave.addEventListener('click',()=>{
+    const nome=form.querySelector('#cadNome').value.trim();
+    if(!nome){toast('Informe o nome do cliente');return;}
+    const c={id:genId(),name:nome,
+      phone:form.querySelector('#cadTel').value.trim(),
+      pixKey:form.querySelector('#cadPix').value.trim()||'',
+      limit:parseFloat(form.querySelector('#cadLimite').value)||0,
+      color:nextColor(),initials:initials(nome),transactions:[]};
+    state.clients.push(c);saveData();toast(`${nome} cadastrado!`);go('clientes');
+  });
+  form.appendChild(btnSave);
+  const btnCancel=document.createElement('button');btnCancel.className='btn-cancel';btnCancel.textContent='Cancelar';
+  btnCancel.addEventListener('click',()=>go('clientes'));
+  form.appendChild(btnCancel);
+  body.appendChild(form);ps.appendChild(body);
+}
+
+/* ═══════════════════ MODALS ═══════════════════ */
+function showAgendarModal(c,ps){
+  const overlay=document.createElement('div');overlay.className='overlay';
+  const sheet=document.createElement('div');sheet.className='modal-sheet';
+  sheet.innerHTML=`
+    <div class="modal-title">Agendar cobrança — ${c.name.split(' ')[0]}</div>
+    <div class="field-label">Canal de envio</div>
+    <select class="field-select" id="agCanal"><option value="whatsapp">WhatsApp</option><option value="sms">SMS</option></select>
+    <div class="field-label">Repetir a cada (dias)</div>
+    <input class="field-input" id="agDias" type="number" min="1" max="365" placeholder="Ex: 7" value="7">
+    <div class="field-label">Primeira cobrança</div>
+    <input class="field-input" id="agData" type="date" value="${today()}">
+    <button class="btn-save" id="btnSalvarAg">Confirmar agendamento</button>
+    <button class="btn-cancel" id="btnCancelAg">Cancelar</button>`;
+  sheet.querySelector('#btnCancelAg').addEventListener('click',()=>overlay.remove());
+  sheet.querySelector('#btnSalvarAg').addEventListener('click',()=>{
+    const canal=sheet.querySelector('#agCanal').value;
+    const dias=parseInt(sheet.querySelector('#agDias').value)||7;
+    const data=sheet.querySelector('#agData').value||today();
+    state.agendamentos.push({id:genId(),clientId:c.id,canal,diasRepetir:dias,proxData:data});
+    saveData();overlay.remove();toast('Cobrança agendada!');
+    ps.innerHTML='';renderPerfil(ps);
+  });
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  ps.appendChild(overlay);
+}
+
+function showLimitModal(c,ps,onSave){
+  const overlay=document.createElement('div');overlay.className='limit-modal';
+  const box=document.createElement('div');box.className='limit-box';
+  box.innerHTML=`
+    <div class="limit-box-title">Limite de crédito</div>
+    <div class="limit-box-sub">${c.name} · Atual: ${c.limit>0?fmt(c.limit):'sem limite'}</div>
+    <input class="limit-input" id="limitVal" type="number" min="0" step="0.01" placeholder="0,00" value="${c.limit>0?c.limit:''}">
+    <button class="limit-btn remove" id="btnRemLim">Remover limite</button>
+    <div class="limit-btns">
+      <button class="limit-btn cancel" id="btnLimCancel">Cancelar</button>
+      <button class="limit-btn save" id="btnLimSave">Salvar</button>
+    </div>`;
+  box.querySelector('#btnLimCancel').addEventListener('click',()=>overlay.remove());
+  box.querySelector('#btnRemLim').addEventListener('click',()=>{c.limit=0;saveData();overlay.remove();toast('Limite removido');onSave();});
+  box.querySelector('#btnLimSave').addEventListener('click',()=>{
+    const val=parseFloat(box.querySelector('#limitVal').value);
+    if(isNaN(val)||val<0){toast('Informe um valor válido');return;}
+    c.limit=val;saveData();overlay.remove();toast(`Limite: ${fmt(val)}`);onSave();
+  });
+  overlay.appendChild(box);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  ps.appendChild(overlay);
+  setTimeout(()=>box.querySelector('#limitVal').focus(),50);
+}
+
+function showConfirmDelete(c){
+  const ps=document.getElementById('phoneScreen');
+  const overlay=document.createElement('div');overlay.className='confirm-dialog';
+  overlay.innerHTML=`
+    <div class="confirm-box">
+      <div class="confirm-title">Excluir ${c.name}?</div>
+      <div class="confirm-text">Todos os lançamentos serão apagados. Ação irreversível.</div>
+      <div class="confirm-btns">
+        <button class="confirm-btn cancel" id="cbCancel">Cancelar</button>
+        <button class="confirm-btn danger" id="cbDel">Excluir</button>
+      </div>
+    </div>`;
+  overlay.querySelector('#cbCancel').addEventListener('click',()=>overlay.remove());
+  overlay.querySelector('#cbDel').addEventListener('click',()=>{
+    state.clients=state.clients.filter(x=>x.id!==c.id);
+    state.agendamentos=state.agendamentos.filter(a=>a.clientId!==c.id);
+    saveData();go('clientes');toast(`${c.name} excluído`);
+  });
+  ps.appendChild(overlay);
+}
+
+function showClientPicker(_ps,onSelect){
+  const ps=document.getElementById('phoneScreen');
+  const overlay=document.createElement('div');overlay.className='overlay';
+  const sheet=document.createElement('div');sheet.className='modal-sheet';
+  sheet.innerHTML=`<div class="modal-title">Selecionar cliente</div>`;
+  if(state.clients.length===0){
+    sheet.innerHTML+=`<div style="font-size:.82rem;color:var(--gray-400);">Nenhum cliente cadastrado.</div>`;
+  }else{
+    state.clients.forEach(c=>{
+      const {score,nivel}=calcScore(c);
+      const item=document.createElement('div');item.className='modal-client-item';
+      item.innerHTML=`
+        <div style="width:32px;height:32px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">${c.initials}</div>
+        <div class="cli-info"><div class="cli-name">${c.name} <span class="score-badge ${nivel}" style="font-size:.58rem">${score}/100</span></div><div class="cli-time">${c.phone||''}</div></div>`;
+      item.addEventListener('click',()=>{onSelect(c);overlay.remove();});
+      sheet.appendChild(item);
+    });
+  }
+  overlay.appendChild(sheet);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  ps.appendChild(overlay);
+}
+
+/* ═══════════════════ RENDER / ROUTER ═══════════════════ */
+function render(){
+  const ps=document.getElementById('phoneScreen');ps.innerHTML='';
+  const screens={
+    login:renderLogin,dashboard:renderDashboard,clientes:renderClientes,
+    perfil:renderPerfil,lancamento:renderLancamento,relatorio:renderRelatorio,
+    cadastro:renderCadastro,agendamentos:renderAgendamentos,alertas:renderAlertas,
+  };
+  (screens[state.screen]||renderLogin)(ps);
+}
+
+/* ═══════════════════ PERSISTÊNCIA ═══════════════════ */
+function saveData(){
+  localStorage.setItem('nof_clients',JSON.stringify(state.clients));
+  localStorage.setItem('nof_agendamentos',JSON.stringify(state.agendamentos));
+  localStorage.setItem('nof_colorIdx',colorIdx.toString());
+}
+function loadData(){
+  state.clients=JSON.parse(localStorage.getItem('nof_clients')||'[]');
+  state.agendamentos=JSON.parse(localStorage.getItem('nof_agendamentos')||'[]');
+  colorIdx=parseInt(localStorage.getItem('nof_colorIdx')||'0');
+}
+
+/* ═══════════════════ BOOT ═══════════════════ */
+const savedUser=JSON.parse(localStorage.getItem('nof_user')||'null');
+if(savedUser){state.user=savedUser;loadData();state.screen='dashboard';}
+render();
+</script>
+</body>
+</html>
